@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle, Send } from 'lucide-react';
+import { 
+  Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle, 
+  Send, Gift, Sparkles, Tag, AlertCircle 
+} from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCartStore } from '@/store/cartStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-// نوع بيانات منطقة التوصيل
-interface DeliveryArea {
-  id: string;
-  city: string;
-  area: string;
-  delivery_fee: number;
-  is_active: boolean;
-}
+import { useOffers } from '@/hooks/useOffers';
+import { calculateCart } from '@/utils/offerCalculator';
+import { DeliveryArea } from '@/types';
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, clearCart, getTotal } = useCartStore();
+  const { items, removeItem, updateQuantity, clearCart } = useCartStore();
   const [selectedArea, setSelectedArea] = useState('');
   const [notes, setNotes] = useState('');
   const [contactMethod, setContactMethod] = useState<'whatsapp' | 'messenger'>('whatsapp');
   
-  // إصلاح: جلب المناطق من database
+  // جلب مناطق التوصيل والعروض
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(true);
+  const { offers, isLoading: isLoadingOffers } = useOffers();
 
   // جلب مناطق التوصيل من database
   useEffect(() => {
@@ -40,7 +38,16 @@ const CartPage = () => {
         if (error) throw error;
 
         if (data) {
-          setDeliveryAreas(data);
+          setDeliveryAreas(
+            data.map(area => ({
+              id: area.id,
+              city: area.city,
+              area: area.area,
+              deliveryFee: area.delivery_fee,
+              deliveryTime: area.delivery_time || '',
+              isActive: area.is_active,
+            }))
+          );
         }
       } catch (error) {
         console.error('Error fetching delivery areas:', error);
@@ -51,14 +58,14 @@ const CartPage = () => {
     };
 
     fetchDeliveryAreas();
-  }, []); // تحديث كل مرة يفتح الصفحة
+  }, []);
 
-  const subtotal = getTotal();
+  // حساب السلة مع العروض
   const deliveryArea = deliveryAreas.find((a) => a.id === selectedArea);
-  const deliveryFee = deliveryArea?.delivery_fee || 0;
-  const total = subtotal + deliveryFee;
+  const originalDeliveryFee = deliveryArea?.deliveryFee || 0;
+  
+  const cartCalculation = calculateCart(items, offers, originalDeliveryFee);
 
-  // رقم الواتساب - يمكن وضعه في settings
   const whatsappNumber = '201276166532';
 
   const formatOrderMessage = () => {
@@ -70,21 +77,39 @@ const CartPage = () => {
       })
       .join('\n');
 
+    // إضافة المنتجات المجانية
+    let freeItemsText = '';
+    cartCalculation.appliedOffers.forEach(applied => {
+      if (applied.freeItems && applied.freeItems.length > 0) {
+        applied.freeItems.forEach(freeItem => {
+          freeItemsText += `\n🎁 ${freeItem.product.nameAr} × ${freeItem.quantity} (مجاناً!)`;
+        });
+      }
+    });
+
+    // إضافة العروض المطبقة
+    const offersText = cartCalculation.appliedOffers.length > 0
+      ? '\n\n*🎉 العروض المطبقة:*\n' + cartCalculation.appliedOffers.map(a => `- ${a.message}`).join('\n')
+      : '';
+
     const message = `
 🛒 *طلب جديد من متجر مذاق*
 
 *📦 المنتجات:*
-${productLines}
+${productLines}${freeItemsText}
 
 *📍 منطقة التوصيل:* ${deliveryArea ? `${deliveryArea.city} - ${deliveryArea.area}` : 'غير محدد'}
-*🚚 رسوم التوصيل:* ${deliveryFee} جنيه
+*🚚 رسوم التوصيل:* ${cartCalculation.deliveryFee} جنيه${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? ' (مجاني 🎉)' : ''}
 
-*💰 المجموع الفرعي:* ${subtotal} جنيه
-*💵 الإجمالي النهائي:* ${total} جنيه
+*💰 المجموع الفرعي:* ${cartCalculation.subtotal.toFixed(2)} جنيه
+${cartCalculation.totalDiscount > 0 ? `*💚 إجمالي الخصم:* ${cartCalculation.totalDiscount.toFixed(2)} جنيه` : ''}
+*💵 الإجمالي النهائي:* ${cartCalculation.total.toFixed(2)} جنيه
+${cartCalculation.savings > 0 ? `\n✨ *وفرت:* ${cartCalculation.savings.toFixed(2)} جنيه` : ''}
 
 *💳 طريقة الدفع:* الدفع عند الاستلام
+${offersText}
 
-${notes ? `*📝 ملاحظات:* ${notes}` : ''}
+${notes ? `\n*📝 ملاحظات:* ${notes}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━
 _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', { 
@@ -115,7 +140,6 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
     if (contactMethod === 'whatsapp') {
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
     } else {
-      // يمكن إضافة رابط الماسنجر هنا
       toast.info('خاصية الماسنجر قيد التطوير');
     }
   };
@@ -232,7 +256,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
 
                         <div className="flex items-center gap-4">
                           <span className="font-bold text-primary text-lg">
-                            {lineTotal} جنيه
+                            {lineTotal.toFixed(2)} جنيه
                           </span>
                           <button
                             onClick={() =>
@@ -249,6 +273,38 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                 );
               })}
             </AnimatePresence>
+
+            {/* المنتجات المجانية */}
+            {cartCalculation.appliedOffers.some(offer => offer.freeItems && offer.freeItems.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-dashed border-purple-300"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <Gift className="w-6 h-6 text-purple-600" />
+                  <h3 className="text-lg font-bold text-purple-900">🎉 منتجات مجانية!</h3>
+                </div>
+                <div className="space-y-3">
+                  {cartCalculation.appliedOffers.map((applied, idx) => 
+                    applied.freeItems?.map((freeItem, fIdx) => (
+                      <div key={`${idx}-${fIdx}`} className="flex items-center gap-3 bg-white/60 rounded-xl p-3">
+                        <img
+                          src={freeItem.product.mainImage}
+                          alt={freeItem.product.nameAr}
+                          className="w-16 h-16 object-cover rounded-lg"
+                        />
+                        <div className="flex-1">
+                          <p className="font-semibold text-purple-900">{freeItem.product.nameAr}</p>
+                          <p className="text-sm text-purple-600">الكمية: {freeItem.quantity}</p>
+                        </div>
+                        <span className="text-2xl">🎁</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            )}
 
             {/* Continue Shopping */}
             <div className="flex items-center justify-between pt-4">
@@ -273,14 +329,35 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl p-6 shadow-md sticky top-24">
+            <div className="bg-white rounded-2xl p-6 shadow-md sticky top-24 space-y-4">
               <h2 className="text-xl font-bold mb-6">ملخص الطلب</h2>
 
               {/* Subtotal */}
               <div className="flex justify-between py-3 border-b">
                 <span className="text-muted-foreground">المجموع الفرعي</span>
-                <span className="font-medium">{subtotal} جنيه</span>
+                <span className="font-medium">{cartCalculation.subtotal.toFixed(2)} جنيه</span>
               </div>
+
+              {/* العروض المطبقة */}
+              {cartCalculation.appliedOffers.length > 0 && (
+                <div className="py-3 border-b space-y-2">
+                  <div className="flex items-center gap-2 text-green-600 font-semibold mb-2">
+                    <Sparkles className="w-4 h-4" />
+                    <span>العروض المطبقة</span>
+                  </div>
+                  {cartCalculation.appliedOffers.map((applied, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-sm">
+                      <Tag className="w-4 h-4 text-green-600 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-foreground">{applied.message}</p>
+                        <p className="text-green-600 font-semibold">
+                          - {applied.discount.toFixed(2)} جنيه
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Delivery Area */}
               <div className="py-4 border-b">
@@ -298,7 +375,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                     <option value="">اختر منطقة التوصيل</option>
                     {deliveryAreas.map((area) => (
                       <option key={area.id} value={area.id}>
-                        {area.city} - {area.area} ({area.delivery_fee} جنيه)
+                        {area.city} - {area.area} ({area.deliveryFee} جنيه)
                       </option>
                     ))}
                   </select>
@@ -312,17 +389,36 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
               </div>
 
               {/* Delivery Fee */}
-              {deliveryArea && (
-                <div className="flex justify-between py-3 border-b">
-                  <span className="text-muted-foreground">رسوم التوصيل</span>
-                  <span className="font-medium">{deliveryFee} جنيه</span>
+              <div className="flex justify-between py-3 border-b">
+                <span className="text-muted-foreground">رسوم التوصيل</span>
+                <span className={`font-medium ${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? 'text-green-600 line-through' : ''}`}>
+                  {originalDeliveryFee > 0 && cartCalculation.deliveryFee === 0 ? (
+                    <>
+                      <span className="line-through text-muted-foreground">{originalDeliveryFee} جنيه</span>
+                      <span className="text-green-600 font-bold mr-2">مجاني 🎉</span>
+                    </>
+                  ) : (
+                    `${cartCalculation.deliveryFee} جنيه`
+                  )}
+                </span>
+              </div>
+
+              {/* Total Savings */}
+              {cartCalculation.savings > 0 && (
+                <div className="flex justify-between py-3 bg-green-50 -mx-6 px-6 rounded-lg">
+                  <span className="text-green-700 font-semibold">✨ إجمالي التوفير</span>
+                  <span className="text-green-700 font-bold text-lg">
+                    {cartCalculation.savings.toFixed(2)} جنيه
+                  </span>
                 </div>
               )}
 
               {/* Total */}
-              <div className="flex justify-between py-4">
+              <div className="flex justify-between py-4 border-t-2">
                 <span className="text-lg font-bold">الإجمالي النهائي</span>
-                <span className="text-2xl font-bold text-primary">{total} جنيه</span>
+                <span className="text-2xl font-bold text-primary">
+                  {cartCalculation.total.toFixed(2)} جنيه
+                </span>
               </div>
 
               {/* Notes */}

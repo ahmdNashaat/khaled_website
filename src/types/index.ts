@@ -54,19 +54,68 @@ export interface DeliveryArea {
   isActive: boolean;
 }
 
-// Offer Types
+// Advanced Offer Types
+export type OfferType = 
+  | 'percentage'        // خصم نسبة مئوية
+  | 'fixed'            // خصم قيمة ثابتة
+  | 'bogo'             // اشتري واحد واحصل على الثاني
+  | 'buy_x_get_y'      // اشتري X واحصل على Y مجاناً
+  | 'free_shipping'    // شحن مجاني
+  | 'category_discount' // خصم على قسم كامل
+  | 'custom';          // عرض مخصص
+
 export interface Offer {
   id: string;
-  titleAr: string;
-  description: string;
-  type: 'percentage' | 'fixed' | 'bogo' | 'custom' | 'free_shipping';
-  discountPercentage?: number;
-  discountAmount?: number;
-  bannerImage: string;
-  startDate: Date;
-  endDate: Date;
-  isActive: boolean;
+  title_ar: string;
+  description: string | null;
+  type: OfferType;
+  
+  // خصومات
+  discount_percentage: number | null;  // نسبة الخصم (0-100)
+  discount_amount: number | null;      // قيمة الخصم الثابتة
+  
+  // Buy X Get Y
+  min_quantity: number | null;         // الحد الأدنى للكمية
+  free_quantity: number | null;        // عدد القطع المجانية
+  
+  // شحن مجاني
+  min_amount: number | null;           // الحد الأدنى للمبلغ
+  
+  // تطبيق العرض على
+  applicable_products: string[] | null;   // معرّفات المنتجات
+  applicable_categories: string[] | null; // معرّفات الأقسام
+  
+  // إعدادات
+  banner_image: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_active: boolean;
   priority: number;
+  auto_apply: boolean;                 // تطبيق تلقائي في السلة
+  
+  created_at: string;
+  updated_at: string;
+}
+
+// نتيجة تطبيق العرض
+export interface AppliedOffer {
+  offer: Offer;
+  discount: number;                    // قيمة الخصم المطبقة
+  freeItems?: {                        // المنتجات المجانية
+    product: Product;
+    quantity: number;
+  }[];
+  message: string;                     // رسالة للعميل
+}
+
+// حساب السلة مع العروض
+export interface CartCalculation {
+  subtotal: number;                    // المجموع قبل الخصم
+  deliveryFee: number;                 // رسوم التوصيل
+  appliedOffers: AppliedOffer[];       // العروض المطبقة
+  totalDiscount: number;               // إجمالي الخصم
+  total: number;                       // الإجمالي النهائي
+  savings: number;                     // المبلغ الموفر
 }
 
 // Store Settings Types
