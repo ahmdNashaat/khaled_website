@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle, 
@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCartStore } from '@/store/cartStore';
+import { useOrdersStore } from '@/store/ordersStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOffers } from '@/hooks/useOffers';
@@ -15,6 +16,8 @@ import { DeliveryArea } from '@/types';
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
+  const createOrder = useOrdersStore((state) => state.createOrder);
+  const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState('');
   const [notes, setNotes] = useState('');
   const [contactMethod, setContactMethod] = useState<'whatsapp' | 'messenger'>('whatsapp');
@@ -135,13 +138,33 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
       return;
     }
 
-    const message = formatOrderMessage();
+    // 1. حفظ الطلب في الـ store
+    const order = createOrder({
+      items,
+      deliveryArea,
+      notes,
+      contactMethod,
+      subtotal: cartCalculation.subtotal,
+      deliveryFee: cartCalculation.deliveryFee,
+      totalDiscount: cartCalculation.totalDiscount,
+      total: cartCalculation.total,
+      savings: cartCalculation.savings,
+      appliedOffers: cartCalculation.appliedOffers,
+    });
 
+    // 2. فتح واتساب أو ماسنجر
+    const message = formatOrderMessage();
     if (contactMethod === 'whatsapp') {
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
     } else {
       toast.info('خاصية الماسنجر قيد التطوير');
     }
+
+    // 3. تفريغ السلة
+    clearCart();
+
+    // 4. التنقل لصفحة تأكيد الطلب
+    navigate(`/orders/${order.id}`);
   };
 
   if (items.length === 0) {

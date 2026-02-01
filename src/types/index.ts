@@ -115,7 +115,7 @@ export interface CartCalculation {
   appliedOffers: AppliedOffer[];       // العروض المطبقة
   totalDiscount: number;               // إجمالي الخصم
   total: number;                       // الإجمالي النهائي
-  savings: number;                     // المبلغ الموفر
+  savings: number;                     // المبلغ الموفّر
 }
 
 // Store Settings Types
@@ -134,3 +134,43 @@ export interface StoreSettings {
   messengerUrl?: string;
 }
 
+// ─── Order Types ─────────────────────────────────────────────────────────────
+
+export type OrderStatus =
+  | 'pending'       // انتظار التأكيد
+  | 'confirmed'     // تأكّد
+  | 'preparing'     // يُعدّ
+  | 'out_for_delivery' // في الطريق
+  | 'delivered';    // تم التوصيل
+
+export type OrderContactMethod = 'whatsapp' | 'messenger';
+
+export interface OrderItem {
+  product: Product;
+  quantity: number;
+  selectedSize?: ProductSize;
+  lineTotal: number;
+}
+
+export interface Order {
+  id: string;                          // uuid فريد للطلب
+  createdAt: string;                   // تاريخ إنشاء الطلب (ISO string)
+  status: OrderStatus;
+  contactMethod: OrderContactMethod;
+  items: OrderItem[];
+  deliveryArea: {
+    city: string;
+    area: string;
+  } | null;
+  notes: string;
+  subtotal: number;
+  deliveryFee: number;
+  totalDiscount: number;
+  total: number;
+  savings: number;
+  appliedOffers: {
+    offerTitle: string;
+    discount: number;
+    message: string;
+  }[];
+}
