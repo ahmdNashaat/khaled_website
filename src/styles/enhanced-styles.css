@@ -1,0 +1,171 @@
+/* ===== Hero Section Enhancements ===== */
+
+/* Radial Gradient for better text contrast */
+.bg-gradient-radial {
+  background: radial-gradient(
+    circle at 70% 50%,
+    transparent 0%,
+    rgba(0, 0, 0, 0.1) 30%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Text shadows for better readability */
+.text-shadow-strong {
+  text-shadow: 
+    3px 3px 8px rgba(0, 0, 0, 0.8),
+    0px 0px 20px rgba(0, 0, 0, 0.5),
+    0px 4px 15px rgba(0, 0, 0, 0.7);
+}
+
+.text-shadow-medium {
+  text-shadow: 
+    2px 2px 6px rgba(0, 0, 0, 0.9),
+    0px 0px 15px rgba(0, 0, 0, 0.6);
+}
+
+.text-shadow-light {
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+/* Image brightness control */
+.brightness-75 {
+  filter: brightness(0.75);
+}
+
+.brightness-60 {
+  filter: brightness(0.6);
+}
+
+/* Backdrop blur utilities */
+.backdrop-blur-strong {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* ===== Ticker Animation Styles ===== */
+
+/* Smooth scrolling ticker */
+.ticker-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker-content {
+  display: flex;
+  animation: ticker-scroll 30s linear infinite;
+}
+
+/* Pause animation on hover */
+.ticker-wrapper:hover .ticker-content {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Smooth performance optimizations */
+.ticker-content {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .ticker-content {
+    animation-duration: 20s;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-content {
+    animation: none;
+  }
+  
+  .ticker-wrapper:hover .ticker-content {
+    animation: none;
+  }
+}
+
+/* ===== Additional Hero Utilities ===== */
+
+/* Content container with better spacing */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  padding: 2rem;
+}
+
+/* Button glow effects */
+.btn-glow {
+  box-shadow: 
+    0 0 20px rgba(139, 69, 19, 0.3),
+    0 0 40px rgba(139, 69, 19, 0.2);
+}
+
+.btn-glow:hover {
+  box-shadow: 
+    0 0 30px rgba(139, 69, 19, 0.5),
+    0 0 60px rgba(139, 69, 19, 0.3);
+}
+
+/* Smooth transitions */
+.transition-all-smooth {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ===== Arabic Font Enhancements ===== */
+
+/* Better Arabic text rendering */
+.text-arabic {
+  font-feature-settings: 'liga', 'calt', 'kern';
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* RTL improvements */
+[dir="rtl"] .hero-content {
+  text-align: right;
+}
+
+/* ===== Responsive Improvements ===== */
+
+@media (max-width: 768px) {
+  .hero-content {
+    padding: 1rem;
+  }
+  
+  .text-shadow-strong {
+    text-shadow: 
+      2px 2px 6px rgba(0, 0, 0, 0.9),
+      0px 0px 15px rgba(0, 0, 0, 0.7);
+  }
+}
+
+/* ===== Performance Optimizations ===== */
+
+/* GPU acceleration for smooth animations */
+.gpu-accelerate {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Prevent layout shift */
+.hero-section {
+  min-height: 600px;
+}
+
+@media (max-width: 640px) {
+  .hero-section {
+    min-height: 500px;
+  }
+}

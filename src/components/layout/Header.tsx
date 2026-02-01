@@ -1,7 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X, Phone, Search, Settings, LogIn } from 'lucide-react';
+import {
+  ShoppingCart,
+  Menu,
+  X,
+  Search,
+  Settings,
+  LogIn,
+} from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -20,165 +27,139 @@ const Header = () => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  /* ================= TICKER ================= */
+  const tickerItems = [
+    { icon: '📞', text: '+20 127 616 6532', type: 'phone' as const },
+    { icon: '🌙', text: 'رمضان كريم', type: 'text' as const },
+    { icon: '🚚', text: 'توصيل مجاني للطلبات فوق ٥٠٠ جنيه', type: 'text' as const },
+    { icon: '⏰', text: 'خدمة العملاء: 24/7', type: 'text' as const },
+    { icon: '✨', text: 'منتجات طبيعية 100%', type: 'text' as const },
+  ];
+
+  const [currentTicker, setCurrentTicker] = useState(tickerItems[0]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTicker(
+        tickerItems[Math.floor(Math.random() * tickerItems.length)]
+      );
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, []);
+  /* ========================================== */
+
   return (
-    <header className="sticky top-0 z-50 glass border-b border-border">
-      {/* Top Bar */}
-      <div className="bg-primary text-primary-foreground py-2">
-        <div className="section-container flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            <span dir="ltr">+20 127 616 6532</span>
-          </div>
-          <p className="hidden sm:block">رمضان كريم 🌙 توصيل مجاني للطلبات فوق ٥٠٠ جنيه</p>
+    <header className="sticky top-0 z-50 glass border-b border-border backdrop-blur-lg">
+      {/* ===== Random Fade + Rotate Top Bar ===== */}
+      <div className="bg-gradient-to-r from-primary via-primary-dark to-primary text-primary-foreground py-2.5">
+        <div className="relative flex items-center justify-center h-8 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTicker.text}
+              initial={{ opacity: 0, rotate: -3, scale: 0.95 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: 3, scale: 0.95 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+              className="absolute flex items-center gap-3 text-sm font-semibold"
+            >
+              <span className="text-lg">{currentTicker.icon}</span>
+
+              {currentTicker.type === 'phone' ? (
+                <a
+                  href={`tel:${currentTicker.text}`}
+                  dir="ltr"
+                  className="font-bold hover:text-secondary transition-colors"
+                >
+                  {currentTicker.text}
+                </a>
+              ) : (
+                <span>{currentTicker.text}</span>
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
+      {/* ======================================= */}
 
-      {/* Main Header */}
+      {/* ===== Main Header ===== */}
       <div className="section-container py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-primary-light rounded-xl flex items-center justify-center shadow-warm">
-              <span className="text-2xl font-bold text-white">م</span>
+            <div className="w-14 h-14 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-white font-black text-xl">م</span>
             </div>
             <div>
-              <h1 className="text-xl font-bold text-primary">مذاق</h1>
-              <p className="text-xs text-muted-foreground">أجود المنتجات الطبيعية</p>
+              <h1 className="text-2xl font-black text-primary">مَـذاق</h1>
+              <p className="text-xs text-muted-foreground">
+                أجود المنتجات الطبيعية
+              </p>
             </div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`relative font-medium transition-colors duration-200 animated-underline ${
-                  isActive(link.to) 
-                    ? 'text-primary' 
-                    : 'text-foreground hover:text-primary'
+                className={`font-semibold transition-colors ${
+                  isActive(link.to)
+                    ? 'text-primary'
+                    : 'hover:text-primary'
                 }`}
               >
                 {link.label}
-                {isActive(link.to) && (
-                  <motion.span
-                    layoutId="activeNav"
-                    className="absolute -bottom-1 right-0 w-full h-0.5 bg-secondary rounded-full"
-                  />
-                )}
               </Link>
             ))}
           </nav>
 
           {/* Actions */}
           <div className="flex items-center gap-3">
-            {/* Search Button */}
-            <button className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-muted transition-colors">
-              <Search className="w-5 h-5 text-muted-foreground" />
+            <button className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center">
+              <Search className="w-5 h-5" />
             </button>
 
-            {/* Admin Link */}
             {isAdmin && (
               <Link
                 to="/admin"
-                className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-muted transition-colors"
-                title="لوحة التحكم"
+                className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center"
               >
-                <Settings className="w-5 h-5 text-muted-foreground" />
+                <Settings className="w-5 h-5" />
               </Link>
             )}
 
-            {/* Auth Link */}
             {!user && (
               <Link
                 to="/auth"
-                className="hidden sm:flex items-center justify-center w-10 h-10 rounded-xl hover:bg-muted transition-colors"
-                title="تسجيل الدخول"
+                className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center"
               >
-                <LogIn className="w-5 h-5 text-muted-foreground" />
+                <LogIn className="w-5 h-5" />
               </Link>
             )}
 
-            {/* Cart */}
             <Link
               to="/cart"
-              className="relative flex items-center justify-center w-10 h-10 bg-primary rounded-xl text-primary-foreground hover:opacity-90 transition-opacity"
+              className="relative w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center"
             >
               <ShoppingCart className="w-5 h-5" />
               {itemCount > 0 && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-2 -left-2 w-5 h-5 bg-secondary text-secondary-foreground text-xs font-bold rounded-full flex items-center justify-center"
-                >
+                <span className="absolute -top-2 -left-2 w-6 h-6 bg-secondary text-xs rounded-full flex items-center justify-center">
                   {itemCount}
-                </motion.span>
+                </span>
               )}
             </Link>
 
-            {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden flex items-center justify-center w-10 h-10 rounded-xl hover:bg-muted transition-colors"
+              className="lg:hidden w-10 h-10 rounded-xl hover:bg-muted flex items-center justify-center"
             >
-              {isMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isMenuOpen ? <X /> : <Menu />}
             </button>
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {isMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden border-t border-border bg-white"
-          >
-            <nav className="section-container py-4 flex flex-col gap-2">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`py-3 px-4 rounded-xl font-medium transition-colors ${
-                    isActive(link.to)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              ))}
-              {isAdmin && (
-                <Link
-                  to="/admin"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="py-3 px-4 rounded-xl font-medium transition-colors hover:bg-muted flex items-center gap-2"
-                >
-                  <Settings className="w-4 h-4" />
-                  لوحة التحكم
-                </Link>
-              )}
-              {!user && (
-                <Link
-                  to="/auth"
-                  onClick={() => setIsMenuOpen(false)}
-                  className="py-3 px-4 rounded-xl font-medium transition-colors hover:bg-muted flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  تسجيل الدخول
-                </Link>
-              )}
-            </nav>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </header>
   );
 };

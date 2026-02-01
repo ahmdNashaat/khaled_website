@@ -1,6 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+@import './styles/enhanced-styles.css';
 
 
 /* Mazaq Ramadan E-Commerce Design System */
@@ -296,4 +297,103 @@
 
 .animate-pulse-gold {
   animation: pulse-gold 2s ease-in-out infinite;
+}
+
+/* Ticker Animation Styles */
+
+/* Smooth scrolling ticker */
+.ticker-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.ticker-content {
+  display: flex;
+  animation: ticker-scroll 30s linear infinite;
+}
+
+/* Pause animation on hover */
+.ticker-wrapper:hover .ticker-content {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Alternative: CSS-only ticker (if Framer Motion has issues) */
+@keyframes scroll-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.css-ticker {
+  animation: scroll-left 30s linear infinite;
+}
+
+.css-ticker:hover {
+  animation-play-state: paused;
+}
+
+/* Gradient fade edges */
+.ticker-fade-left {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 80px;
+  background: linear-gradient(to right, currentColor, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ticker-fade-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 80px;
+  background: linear-gradient(to left, currentColor, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Smooth performance optimizations */
+.ticker-content,
+.css-ticker {
+  will-change: transform;
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .ticker-content {
+    animation-duration: 20s;
+  }
+  
+  .css-ticker {
+    animation-duration: 20s;
+  }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-content,
+  .css-ticker {
+    animation: none;
+  }
+  
+  .ticker-wrapper:hover .ticker-content {
+    animation: none;
+  }
 }

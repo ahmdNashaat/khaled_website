@@ -1,13 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Sparkles, Truck, Shield, BadgePercent } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Sparkles, Truck, Shield, BadgePercent, ChevronLeft, ChevronRight } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductCard from '@/components/ProductCard';
 import CategoryCard from '@/components/CategoryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category } from '@/types';
-import heroBg from '@/assets/hero-bg.jpg';
 
 // نوع بيانات للعروض (متطابق مع database schema)
 interface Offer {
@@ -24,11 +23,85 @@ interface Offer {
   priority: number;
 }
 
+// Hero Slides Data
+const heroSlides = [
+  {
+    id: 1,
+    image: '/hero-slide-1.jpg', // صورة التمور مع العسل والمكسرات
+    badge: '🌙 رمضان كريم',
+    title: 'أجود المنتجات الطبيعية لرمضان',
+    subtitle: 'تمور فاخرة • عسل طبيعي • مكسرات محمصة',
+    description: 'كل ما تحتاجه لمائدة رمضانية مميزة بجودة عالية وأسعار منافسة',
+    ctaPrimary: { text: 'تصفح المنتجات', link: '/products' },
+    ctaSecondary: { text: 'اطلب عبر واتساب', link: 'https://wa.me/+201276166532' },
+  },
+  {
+    id: 2,
+    image: '/hero-slide-2.jpg', // صورة التمور الطازجة
+    badge: '✨ عروض خاصة',
+    title: 'تمور عربية فاخرة',
+    subtitle: 'من أرقى المزارع السعودية',
+    description: 'تمور طازجة ومختارة بعناية لتقديم أفضل طعم فريد لكم',
+    ctaPrimary: { text: 'تسوق التمور', link: '/products' },
+    ctaSecondary: { text: 'اطلب الآن', link: 'https://wa.me/+201276166532' },
+  },
+  {
+    id: 3,
+    image: '/hero-slide-3.jpg', // صورة التمور في الوعاء
+    badge: '🎁 هدايا مميزة',
+    title: 'أسهل مكان للعثور على هدايا المناسبات',
+    subtitle: 'مجموعات هدايا فاخرة',
+    description: 'باقات مميزة من التمور والعسل والمكسرات مغلفة بأناقة',
+    ctaPrimary: { text: 'استكشف الهدايا', link: '/products' },
+    ctaSecondary: { text: 'تواصل معنا', link: 'https://wa.me/+201276166532' },
+  },
+    {
+    id: 4,
+    image: '/hero-slide-4.jpg', // صورة صورة المكسرات
+    badge: '🎁 هدايا مميزة',
+    title: 'أسهل مكان للعثور على هدايا المناسبات',
+    subtitle: 'مجموعات هدايا فاخرة',
+    description: 'باقات مميزة من التمور والعسل والمكسرات مغلفة بأناقة',
+    ctaPrimary: { text: 'استكشف الهدايا', link: '/products' },
+    ctaSecondary: { text: 'تواصل معنا', link: 'https://wa.me/+201276166532' },
+  },
+];
+
 const HomePage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Hero Carousel State
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [isAutoPlaying]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    setIsAutoPlaying(false);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
+    setIsAutoPlaying(false);
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+    setIsAutoPlaying(false);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -56,7 +129,6 @@ const HomePage = () => {
               image: c.image_url,
               isActive: c.is_active,
               order: c.display_order,
-              // إصلاح: حساب عدد المنتجات من aggregate
               productsCount: c.products?.[0]?.count || 0,
             }))
           );
@@ -95,7 +167,7 @@ const HomePage = () => {
           );
         }
 
-        // إصلاح: جلب العروض من database
+        // جلب العروض من database
         const { data: offersData, error: offersError } = await supabase
           .from('offers')
           .select('*')
@@ -105,27 +177,13 @@ const HomePage = () => {
         if (offersError) {
           console.error('Error fetching offers:', offersError);
         } else if (offersData) {
-          console.log('📢 Offers fetched from DB:', offersData);
-          console.log('📅 Current date:', new Date().toISOString());
-          
-          // فلترة العروض يدوياً حسب التاريخ
           const currentDate = new Date();
           const validOffers = offersData.filter(offer => {
             const endDate = new Date(offer.end_date);
             const startDate = new Date(offer.start_date);
-            const isValid = currentDate >= startDate && currentDate <= endDate;
-            
-            console.log(`Offer "${offer.title_ar}":`, {
-              startDate: startDate.toISOString(),
-              endDate: endDate.toISOString(),
-              currentDate: currentDate.toISOString(),
-              isValid
-            });
-            
-            return isValid;
+            return currentDate >= startDate && currentDate <= endDate;
           });
           
-          console.log('✅ Valid offers after date filtering:', validOffers.length);
           setOffers(validOffers);
         }
 
@@ -164,84 +222,158 @@ const HomePage = () => {
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="relative min-h-[600px] flex items-center overflow-hidden">
-        {/* Background Image */}
-        <div className="absolute inset-0">
-          <img
-            src={heroBg}
-            alt="Ramadan products"
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-l from-background/95 via-background/70 to-transparent" />
+      {/* Hero Carousel Section */}
+      <section className="relative h-[700px] overflow-hidden">
+        {/* Slides */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide}
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.7, ease: "easeInOut" }}
+            className="absolute inset-0"
+          >
+            {/* Background Image */}
+            <div className="absolute inset-0">
+              <img
+                src={heroSlides[currentSlide].image}
+                alt={heroSlides[currentSlide].title}
+                className="w-full h-full object-cover brightness-75"
+              />
+              {/* Multi-layer Gradient Overlays for Better Text Contrast */}
+              {/* Dark overlay base */}
+              <div className="absolute inset-0 bg-black/40" />
+              {/* Gradient from right (for RTL text) */}
+              <div className="absolute inset-0 bg-gradient-to-l from-background/95 via-background/80 to-transparent" />
+              {/* Bottom gradient */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+              {/* Radial gradient for text area */}
+              <div className="absolute inset-0 bg-gradient-radial from-transparent via-black/10 to-black/40" />
+            </div>
+
+            {/* Content */}
+            <div className="relative h-full section-container flex items-center">
+              <div className="max-w-2xl">
+                {/* Badge */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  <span className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary via-secondary-dark to-primary backdrop-blur-sm border-2 border-white/30 text-white px-6 py-3 rounded-full text-sm font-bold mb-6 shadow-2xl">
+                    {heroSlides[currentSlide].badge}
+                  </span>
+                </motion.div>
+
+                {/* Title */}
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.3 }}
+                  className="text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-4"
+                  style={{ 
+                    textShadow: '3px 3px 8px rgba(0,0,0,0.8), 0px 0px 20px rgba(0,0,0,0.5), 0px 4px 15px rgba(0,0,0,0.7)',
+                    lineHeight: '1.2'
+                  }}
+                >
+                  {heroSlides[currentSlide].title}
+                </motion.h1>
+
+                {/* Subtitle */}
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="text-xl md:text-2xl font-bold text-secondary mb-4"
+                  style={{
+                    textShadow: '2px 2px 6px rgba(0,0,0,0.9), 0px 0px 15px rgba(0,0,0,0.6)'
+                  }}
+                >
+                  {heroSlides[currentSlide].subtitle}
+                </motion.p>
+
+                {/* Description */}
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.5 }}
+                  className="text-lg text-white font-medium mb-10 leading-relaxed max-w-xl bg-black/30 backdrop-blur-sm p-4 rounded-2xl border border-white/20"
+                  style={{
+                    textShadow: '1px 1px 4px rgba(0,0,0,0.8)'
+                  }}
+                >
+                  {heroSlides[currentSlide].description}
+                </motion.p>
+
+                {/* CTA Buttons */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                  className="flex flex-wrap items-center gap-4"
+                >
+                  <Link
+                    to={heroSlides[currentSlide].ctaPrimary.link}
+                    className="btn-primary px-8 py-4 text-lg font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105"
+                  >
+                    {heroSlides[currentSlide].ctaPrimary.text}
+                    <ArrowLeft className="w-5 h-5 mr-2" />
+                  </Link>
+                  
+                  <a
+                    href={heroSlides[currentSlide].ctaSecondary.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-outline px-8 py-4 text-lg font-bold hover:scale-105 transition-all"
+                  >
+                    {heroSlides[currentSlide].ctaSecondary.text}
+                  </a>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+
+        {/* Navigation Arrows */}
+        <div className="absolute inset-0 flex items-center justify-between px-4 md:px-8 pointer-events-none">
+          <button
+            onClick={prevSlide}
+            className="pointer-events-auto w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl flex items-center justify-center text-primary transition-all hover:scale-110"
+            aria-label="الشريحة السابقة"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+          
+          <button
+            onClick={nextSlide}
+            className="pointer-events-auto w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white shadow-xl flex items-center justify-center text-primary transition-all hover:scale-110"
+            aria-label="الشريحة التالية"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
         </div>
 
-        {/* Content */}
-        <div className="relative section-container py-20">
-          <div className="max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-            >
-              <span className="inline-flex items-center gap-2 bg-secondary/20 text-secondary-dark px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <span className="text-xl">🌙</span>
-                رمضان كريم
-              </span>
-            </motion.div>
-
-            <motion.h1
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl md:text-5xl lg:text-6xl font-black text-foreground leading-tight mb-6"
-            >
-              أجود المنتجات
-              <br />
-              <span className="text-primary">الطبيعية</span> لرمضان
-            </motion.h1>
-
-            <motion.p
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg text-muted-foreground mb-8 leading-relaxed"
-            >
-              تمور فاخرة، عسل طبيعي، مكسرات محمصة، وياميش رمضان. كل ما تحتاجه لمائدة رمضانية مميزة بجودة عالية وأسعار منافسة.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="flex flex-col sm:flex-row gap-4"
-            >
-              <Link
-                to="/products"
-                className="btn-primary inline-flex items-center justify-center gap-2 text-lg"
-              >
-                تصفح المنتجات
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-              <a
-                href="https://wa.me/201276166532"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-gold inline-flex items-center justify-center gap-2 text-lg"
-              >
-                اطلب الآن عبر واتساب
-              </a>
-            </motion.div>
-          </div>
+        {/* Dots Indicator */}
+        <div className="absolute bottom-8 right-1/2 translate-x-1/2 flex items-center gap-3 z-10">
+          {heroSlides.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              className={`transition-all ${
+                index === currentSlide
+                  ? 'w-12 h-3 bg-primary'
+                  : 'w-3 h-3 bg-white/60 hover:bg-white/80'
+              } rounded-full`}
+              aria-label={`الذهاب للشريحة ${index + 1}`}
+            />
+          ))}
         </div>
-
-        {/* Decorative Elements */}
-        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-background to-transparent" />
       </section>
 
-      {/* إضافة: Offers Slider Section */}
+      {/* Offers Section - عرض فقط إذا كانت هناك عروض */}
       {offers.length > 0 && (
-        <section className="py-12 bg-gradient-to-b from-primary/5 to-transparent">
+        <section className="py-16 bg-gradient-to-b from-accent/30 to-background">
           <div className="section-container">
             <div className="text-center mb-8">
               <motion.h2
