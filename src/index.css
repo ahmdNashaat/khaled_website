@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Mazaq Ramadan E-Commerce Design System */
+@layer base {
+  :root {
+    /* Primary - Browns from logo */
+    --primary-dark: 25 70% 24%;
+    --primary: 25 70% 31%;
+    --primary-light: 19 59% 41%;
+    
+    /* Secondary - Gold/Honey */
+    --secondary-dark: 43 85% 38%;
+    --secondary: 43 74% 49%;
+    --secondary-light: 51 100% 50%;
+    
+    /* Accent - Cream/Beige */
+    --accent: 30 54% 90%;
+    --accent-light: 48 100% 93%;
+    
+    /* Semantic Colors */
+    --background: 0 0% 100%;
+    --foreground: 220 13% 13%;
+    
+    --card: 0 0% 100%;
+    --card-foreground: 220 13% 13%;
+    
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 13% 13%;
+    
+    --primary-foreground: 0 0% 100%;
+    --secondary-foreground: 220 13% 13%;
+    
+    --muted: 30 20% 96%;
+    --muted-foreground: 220 9% 46%;
+    
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 160 84% 39%;
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 38 92% 50%;
+    --warning-foreground: 220 13% 13%;
+    
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 25 70% 31%;
+    
+    --radius: 0.75rem;
+    
+    /* Ramadan Special Colors */
+    --ramadan-green: 146 37% 28%;
+    --ramadan-gold: 43 64% 52%;
+    
+    /* Shadows */
+    --shadow-gold: 0 4px 20px -5px hsl(43 74% 49% / 0.3);
+    --shadow-warm: 0 4px 20px -5px hsl(25 70% 31% / 0.15);
+    
+    /* Sidebar */
+    --sidebar-background: 30 54% 90%;
+    --sidebar-foreground: 220 13% 13%;
+    --sidebar-primary: 25 70% 31%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 43 74% 49%;
+    --sidebar-accent-foreground: 220 13% 13%;
+    --sidebar-border: 30 20% 80%;
+    --sidebar-ring: 25 70% 31%;
+  }
+
+  .dark {
+    --background: 220 13% 10%;
+    --foreground: 30 20% 96%;
+    
+    --card: 220 13% 13%;
+    --card-foreground: 30 20% 96%;
+    
+    --popover: 220 13% 13%;
+    --popover-foreground: 30 20% 96%;
+    
+    --primary: 25 70% 45%;
+    --primary-foreground: 0 0% 100%;
+    
+    --secondary: 43 74% 55%;
+    --secondary-foreground: 220 13% 13%;
+    
+    --muted: 220 13% 18%;
+    --muted-foreground: 30 20% 70%;
+    
+    --accent: 30 30% 20%;
+    --accent-light: 30 30% 25%;
+    
+    --border: 220 13% 20%;
+    --input: 220 13% 20%;
+    --ring: 43 74% 49%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    direction: rtl;
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-cairo antialiased;
+    text-align: right;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-cairo font-bold;
+  }
+}
+
+@layer components {
+  /* Hero Gradient Background */
+  .hero-gradient {
+    background: linear-gradient(135deg, 
+      hsl(var(--accent)) 0%, 
+      hsl(var(--accent-light)) 50%,
+      hsl(0 0% 100%) 100%
+    );
+  }
+  
+  /* Gold Shimmer Effect */
+  .gold-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--secondary-dark)) 0%,
+      hsl(var(--secondary-light)) 50%,
+      hsl(var(--secondary-dark)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  
+  @keyframes shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+  
+  /* Islamic Pattern Overlay */
+  .pattern-overlay {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%238B4513' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+  
+  /* Product Card Hover Effect */
+  .product-card {
+    @apply bg-card rounded-2xl shadow-md overflow-hidden transition-all duration-300;
+  }
+  
+  .product-card:hover {
+    @apply shadow-xl -translate-y-1;
+    box-shadow: var(--shadow-warm);
+  }
+  
+  /* Button Primary Variant */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold 
+           transition-all duration-200 hover:opacity-90 active:scale-95;
+    box-shadow: var(--shadow-warm);
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 6px 25px -5px hsl(var(--primary) / 0.4);
+  }
+  
+  /* Button Secondary/Gold Variant */
+  .btn-gold {
+    @apply bg-secondary text-secondary-foreground px-6 py-3 rounded-xl font-semibold 
+           transition-all duration-200 hover:opacity-90 active:scale-95;
+    box-shadow: var(--shadow-gold);
+  }
+  
+  /* Section Container */
+  .section-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* Category Card */
+  .category-card {
+    @apply relative bg-gradient-to-br from-accent to-white rounded-2xl p-6 
+           transition-all duration-300 cursor-pointer overflow-hidden;
+  }
+  
+  .category-card:hover {
+    @apply shadow-lg scale-[1.02];
+  }
+  
+  .category-card::before {
+    content: '';
+    @apply absolute inset-0 bg-gradient-to-br from-primary/5 to-secondary/10 opacity-0 
+           transition-opacity duration-300;
+  }
+  
+  .category-card:hover::before {
+    @apply opacity-100;
+  }
+  
+  /* Badge Styles */
+  .badge-discount {
+    @apply bg-destructive text-destructive-foreground text-xs font-bold px-2 py-1 rounded-full;
+  }
+  
+  .badge-new {
+    @apply bg-success text-success-foreground text-xs font-bold px-2 py-1 rounded-full;
+  }
+  
+  .badge-featured {
+    @apply bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-full;
+  }
+  
+  /* Input RTL */
+  .input-rtl {
+    @apply w-full px-4 py-3 border-2 border-border rounded-xl 
+           focus:border-primary focus:ring-2 focus:ring-primary/20 
+           outline-none transition-all duration-200 text-right bg-white;
+  }
+  
+  /* Animated Underline */
+  .animated-underline {
+    @apply relative;
+  }
+  
+  .animated-underline::after {
+    content: '';
+    @apply absolute bottom-0 right-0 w-0 h-0.5 bg-secondary transition-all duration-300;
+  }
+  
+  .animated-underline:hover::after {
+    @apply w-full;
+  }
+  
+  /* Glass Effect */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md;
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-primary/30 rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-primary/50;
+  }
+}
+
+/* Animation Keyframes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-gold {
+  0%, 100% { 
+    box-shadow: 0 0 0 0 hsl(var(--secondary) / 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 0 15px hsl(var(--secondary) / 0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-gold {
+  animation: pulse-gold 2s ease-in-out infinite;
+}
