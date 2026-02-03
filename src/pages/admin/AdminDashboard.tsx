@@ -30,20 +30,23 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const [products, categories, orders, pendingOrders, offers] = await Promise.all([
+        const [products, categories, allOrders, revenueOrders, pendingOrders, offers] = await Promise.all([
           supabase.from('products').select('id', { count: 'exact', head: true }),
           supabase.from('categories').select('id', { count: 'exact', head: true }),
-          supabase.from('orders').select('id, total', { count: 'exact' }),
+          // كل الطلبات شامل cancelled — عدد فقط
+          supabase.from('orders').select('id', { count: 'exact', head: true }),
+          // المبيعات فعلية — بدون cancelled
+          supabase.from('orders').select('id, total').neq('status', 'cancelled'),
           supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
           supabase.from('offers').select('id', { count: 'exact', head: true }).eq('is_active', true),
         ]);
 
-        const totalRevenue = orders.data?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
+        const totalRevenue = revenueOrders.data?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
 
         setStats({
           productsCount: products.count || 0,
           categoriesCount: categories.count || 0,
-          ordersCount: orders.count || 0,
+          ordersCount: allOrders.count || 0,
           pendingOrdersCount: pendingOrders.count || 0,
           offersCount: offers.count || 0,
           totalRevenue,

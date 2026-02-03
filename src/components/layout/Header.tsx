@@ -8,6 +8,8 @@ import {
   Search,
   Settings,
   LogIn,
+  Package,
+  LogOut,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,7 +18,7 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
   const itemCount = useCartStore((state) => state.getItemCount());
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
 
   const navLinks = [
     { to: '/', label: 'الرئيسية' },
@@ -130,7 +132,16 @@ const Header = () => {
               </Link>
             )}
 
-            {!user && (
+            {/* طلباتي — يظهر فقط لما الـ user logged in */}
+            {user ? (
+              <Link
+                to="/my-orders"
+                className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center relative"
+                title="طلباتي"
+              >
+                <Package className="w-5 h-5" />
+              </Link>
+            ) : (
               <Link
                 to="/auth"
                 className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center"
@@ -159,6 +170,74 @@ const Header = () => {
             </button>
           </div>
         </div>
+
+        {/* ===== Mobile Menu ===== */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.nav
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden mt-4 border-t pt-4 space-y-1"
+            >
+              {navLinks.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  onClick={() => setIsMenuOpen(false)}
+                  className={`flex items-center px-3 py-2.5 rounded-xl font-semibold transition-colors ${
+                    isActive(link.to)
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-muted'
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+
+              {/* ─── حسابي بلوك ─── */}
+              {user ? (
+                <>
+                  <Link
+                    to="/my-orders"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold hover:bg-muted transition-colors"
+                  >
+                    <Package className="w-4 h-4" />
+                    طلباتي
+                  </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold hover:bg-muted transition-colors"
+                    >
+                      <Settings className="w-4 h-4" />
+                      لوحة التحكم
+                    </Link>
+                  )}
+                  <button
+                    onClick={async () => { await signOut(); setIsMenuOpen(false); }}
+                    className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    تسجيل الخروج
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl font-semibold hover:bg-muted transition-colors"
+                >
+                  <LogIn className="w-4 h-4" />
+                  تسجيل الدخول
+                </Link>
+              )}
+            </motion.nav>
+          )}
+        </AnimatePresence>
       </div>
     </header>
   );

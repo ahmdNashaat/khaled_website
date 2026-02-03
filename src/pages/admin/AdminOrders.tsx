@@ -9,6 +9,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -19,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, ShoppingCart, Eye, Phone, MapPin } from 'lucide-react';
+import { Search, ShoppingCart, Eye, Phone, MapPin, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
@@ -66,6 +68,11 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // حذف — confirmation dialog
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const fetchOrders = async () => {
     try {
       const { data, error } = await supabase
@@ -104,6 +111,46 @@ const AdminOrders = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('خطأ في تحديث حالة الطلب');
+    }
+  };
+
+  /* ─── delete ─────────────────────────────────────── */
+  // فتح dialog التأكيد فقط — الحذف الفعلي في confirmDelete
+  const requestDelete = (order: Order) => {
+    setOrderToDelete(order);
+    setDeleteDialogOpen(true);
+  };
+
+  // الحذف الفعلي بعد تأكيد الأدمن
+  const confirmDelete = async () => {
+    if (!orderToDelete) return;
+    setIsDeleting(true);
+    try {
+      // 1. حذف order_items أولاً (foreign-key constraint)
+      const { error: itemsErr } = await supabase
+        .from('order_items')
+        .delete()
+        .eq('order_id', orderToDelete.id);
+      if (itemsErr) throw itemsErr;
+
+      // 2. حذف الطلب نفسه
+      const { error: orderErr } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', orderToDelete.id);
+      if (orderErr) throw orderErr;
+
+      toast.success('تم حذف الطلب بنجاح');
+      setDeleteDialogOpen(false);
+      setDialogOpen(false);
+      setOrderToDelete(null);
+      setSelectedOrder(null);
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('خطأ في حذف الطلب');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -237,13 +284,23 @@ const AdminOrders = () => {
                             {format(new Date(order.created_at), 'dd MMM yyyy', { locale: ar })}
                           </td>
                           <td className="py-3 px-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openOrderDetails(order)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => openOrderDetails(order)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => requestDelete(order)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </td>
                         </motion.tr>
                       );
@@ -339,27 +396,97 @@ const AdminOrders = () => {
                   </div>
                 )}
 
-                {/* Status Change */}
-                <div className="flex items-center gap-4">
-                  <span className="font-medium">تغيير الحالة:</span>
-                  <Select
-                    value={selectedOrder.status}
-                    onValueChange={(value) => handleStatusChange(selectedOrder.id, value as OrderStatus)}
+                {/* الحالة + حذف */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">الحالة:</span>
+                    <Select
+                      value={selectedOrder.status}
+                      onValueChange={(value) => handleStatusChange(selectedOrder.id, value as OrderStatus)}
+                    >
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {statusOptions.map((s) => (
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => requestDelete(selectedOrder)}
+                    className="flex items-center gap-1.5"
                   >
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {statusOptions.map((s) => (
-                        <SelectItem key={s.value} value={s.value}>
-                          {s.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    حذف الطلب
+                  </Button>
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* ─── حذف — dialog التأكيد ────────────────────────── */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+                تأكيد الحذف
+              </DialogTitle>
+              <DialogDescription>
+                هذا الإجراء لا يمكن التراجع عنه
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-4 space-y-3">
+              <p className="text-muted-foreground">
+                هل أنت متأكد إنك عاوز تحذف الطلب؟ كل بيانات الطلب والمنتجات المرتبطة بيه هتتحذف نهائياً.
+              </p>
+              {orderToDelete && (
+                <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-1.5">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">رقم الطلب</span>
+                    <span className="font-mono font-medium">#{orderToDelete.id.slice(0, 8)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">العميل</span>
+                    <span className="font-medium">{orderToDelete.customer_name}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">المبلغ</span>
+                    <span className="font-bold text-destructive">
+                      {Number(orderToDelete.total).toLocaleString('ar-EG')} ج.م
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter className="flex-row-reverse gap-2">
+              <Button
+                variant="destructive"
+                onClick={confirmDelete}
+                disabled={isDeleting}
+                className="flex-1"
+              >
+                {isDeleting ? 'جاري الحذف...' : 'حذف نهائياً'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setDeleteDialogOpen(false)}
+                disabled={isDeleting}
+                className="flex-1"
+              >
+                إلغاء
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
