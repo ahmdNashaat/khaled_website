@@ -1,6 +1,7 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, useRef, createContext, useContext, ReactNode } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useOrdersStore } from '@/store/ordersStore';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +20,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const prevUserIdRef = useRef<string | null>(null);
 
   const checkAdminRole = async (userId: string) => {
     try {
@@ -44,6 +46,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        const nextUserId = session?.user?.id ?? null;
+        if (prevUserIdRef.current && prevUserIdRef.current !== nextUserId) {
+          useOrdersStore.getState().clearOrders();
+        }
+        prevUserIdRef.current = nextUserId;
+
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -62,6 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      prevUserIdRef.current = session?.user?.id ?? null;
       
       if (session?.user) {
         checkAdminRole(session.user.id).then((isAdminResult) => {
@@ -104,6 +113,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    useOrdersStore.getState().clearOrders();
     setUser(null);
     setSession(null);
     setIsAdmin(false);

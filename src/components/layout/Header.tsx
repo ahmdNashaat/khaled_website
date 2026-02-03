@@ -29,6 +29,7 @@ import {
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -76,6 +77,15 @@ const Header = () => {
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setIsSearchOpen(false);
+      setSearchQuery('');
+    }
   };
 
   return (
@@ -177,6 +187,20 @@ const Header = () => {
             >
               <Search className="w-5 h-5" />
             </motion.button>
+
+            {/* My Orders Button - Regular Users Only */}
+            {user && !isAdmin && (
+              <Link to="/my-orders">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/10 transition-all"
+                  title="طلباتي"
+                >
+                  <Package className="w-5 h-5" />
+                </motion.div>
+              </Link>
+            )}
 
             {/* Cart Button - ENHANCED */}
             <Link to="/cart">
@@ -297,15 +321,23 @@ const Header = () => {
               transition={{ duration: 0.3 }}
               className="overflow-hidden mt-4"
             >
-              <div className="relative">
+              <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <button
+                  type="submit"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-primary hover:text-primary-dark transition-colors"
+                >
+                  <Search className="w-5 h-5" />
+                </button>
                 <input
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث عن المنتجات..."
-                  className="w-full pr-12 pl-4 py-3 bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all"
+                  className="w-full pr-12 pl-12 py-3 bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all"
                   autoFocus
                 />
-              </div>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>

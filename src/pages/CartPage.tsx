@@ -14,10 +14,12 @@ import { useOffers } from '@/hooks/useOffers';
 import { calculateCart } from '@/utils/offerCalculator';
 import { saveOrderToSupabase } from '@/utils/saveOrder';
 import { DeliveryArea } from '@/types';
+import { useAuth } from '@/hooks/useAuth';
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
   const createOrder = useOrdersStore((state) => state.createOrder);
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState('');
   const [notes, setNotes] = useState('');
@@ -147,6 +149,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
         totalDiscount: cartCalculation.totalDiscount,
         total: cartCalculation.total,
         appliedOffers: cartCalculation.appliedOffers,
+        userId: user?.id ?? null,
       });
 
       // 2. حفظ محلياً في localStorage
@@ -162,6 +165,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
         savings: cartCalculation.savings,
         appliedOffers: cartCalculation.appliedOffers,
         supabaseOrderId,
+        userId: user?.id ?? null,
       });
 
       // 3. فتح واتساب بعد الحفظ الناجح فقط

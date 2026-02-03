@@ -128,7 +128,9 @@ export type OrderStatus =
   | 'confirmed'
   | 'preparing'
   | 'out_for_delivery'
-  | 'delivered';
+  | 'delivered'
+  | 'cancelled';
+
 
 export type OrderContactMethod = 'whatsapp' | 'messenger';
 
@@ -142,6 +144,7 @@ export interface OrderItem {
 export interface Order {
   id: string;                          // local unique id
   supabaseOrderId: string | null;      // الـ id من Supabase (نربطهم)
+  userId?: string | null;
   createdAt: string;
   status: OrderStatus;
   contactMethod: OrderContactMethod;

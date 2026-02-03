@@ -19,6 +19,7 @@ export interface CreateOrderInput {
   savings: number;
   appliedOffers: AppliedOffer[];
   supabaseOrderId?: string;   // الـ id من Supabase عشان نربطهم
+  userId?: string | null;      // ⬅️ معرف المستخدم
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -26,6 +27,10 @@ interface OrdersState {
   orders: Order[];
   createOrder: (input: CreateOrderInput) => Order;
   getOrderById: (id: string) => Order | undefined;
+  getUserOrders: (userId: string | null) => Order[]; // ⬅️ جديد: جلب طلبات مستخدم معين
+  updateOrderStatus: (supabaseOrderId: string, newStatus: string) => void;
+  removeOrder: (supabaseOrderId: string) => void;
+  clearOrders: () => void; // ⬅️ جديد: مسح كل الطلبات (مفيد عند logout)
 }
 
 export const useOrdersStore = create<OrdersState>()(
@@ -37,6 +42,7 @@ export const useOrdersStore = create<OrdersState>()(
         const order: Order = {
           id: generateId(),
           supabaseOrderId: input.supabaseOrderId ?? null,
+          userId: input.userId ?? null,
           createdAt: new Date().toISOString(),
           status: 'pending',
           contactMethod: input.contactMethod,
@@ -71,6 +77,54 @@ export const useOrdersStore = create<OrdersState>()(
       },
 
       getOrderById: (id) => get().orders.find((o) => o.id === id),
+
+      // ⬅️ جديد: جلب طلبات مستخدم معين فقط
+      getUserOrders: (userId) => {
+        // نفلتر الطلبات اللي عندها supabaseOrderId
+        // (يعني محفوظة في الداتابيز مع user_id)
+        const normalizedUserId = userId ?? null;
+        return get().orders.filter((o) => {
+          const orderUserId = o.userId ?? null;
+          if (normalizedUserId === null) {
+            return orderUserId === null && o.supabaseOrderId === null;
+          }
+          return orderUserId === normalizedUserId;
+        });
+      },
+
+      // ─── الأدمن غيّر الحالة أو العميل الغى → نحدّل محلياً فوراً
+      updateOrderStatus: (supabaseOrderId, newStatus) => {
+        // Map Supabase DB statuses → app statuses
+        const statusMap: Record<string, string> = {
+          pending: 'pending',
+          confirmed: 'confirmed',
+          processing: 'preparing',
+          shipped: 'out_for_delivery',
+          delivered: 'delivered',
+          cancelled: 'cancelled',
+        };
+        const mapped = statusMap[newStatus] || newStatus;
+
+        set((state) => ({
+          orders: state.orders.map((o) =>
+            o.supabaseOrderId === supabaseOrderId
+              ? { ...o, status: mapped as any }
+              : o
+          ),
+        }));
+      },
+
+      // ─── الأدمن حذف الطلب من الداتا بيز → نحذفه محلياً
+      removeOrder: (supabaseOrderId) => {
+        set((state) => ({
+          orders: state.orders.filter((o) => o.supabaseOrderId !== supabaseOrderId),
+        }));
+      },
+
+      // ⬅️ جديد: مسح كل الطلبات (عند logout مثلاً)
+      clearOrders: () => {
+        set({ orders: [] });
+      },
     }),
     { name: 'mazaq-orders' }
   )

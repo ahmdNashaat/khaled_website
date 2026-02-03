@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, X } from 'lucide-react';
+import { Search, Filter, Grid, List, X, BadgePercent } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductCard from '@/components/ProductCard';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,14 +9,21 @@ import { Product, Category } from '@/types';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('search') || '');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Sync searchQuery if ?search= changes externally (e.g. navigating from Header)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    setSearchQuery(urlSearch);
+  }, [searchParams]);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const selectedCategory = searchParams.get('category') || '';
+  const selectedOffer = searchParams.get('offer') || '';
   const sortBy = searchParams.get('sort') || 'newest';
 
   useEffect(() => {
@@ -83,12 +90,91 @@ const ProductsPage = () => {
     fetchData();
   }, []);
 
+  // Fetch products when offer filter changes
+  useEffect(() => {
+    if (selectedOffer) {
+      fetchProductsWithOffer(selectedOffer);
+    }
+  }, [selectedOffer]);
+
+  const fetchProductsWithOffer = async (offerId: string) => {
+    setIsLoading(true);
+    try {
+      // Get the offer details
+      const { data: offer, error: offerError } = await supabase
+        .from('offers')
+        .select('*')
+        .eq('id', offerId)
+        .single();
+
+      if (offerError) throw offerError;
+
+      if (offer) {
+        let query = supabase
+          .from('products')
+          .select('*, categories(name_ar)')
+          .eq('is_available', true);
+
+        // Filter by applicable products or categories
+        if (offer.applicable_products && offer.applicable_products.length > 0) {
+          query = query.in('id', offer.applicable_products);
+        } else if (offer.applicable_categories && offer.applicable_categories.length > 0) {
+          query = query.in('category_id', offer.applicable_categories);
+        }
+
+        const { data: productsData, error: productsError } = await query;
+
+        if (productsError) throw productsError;
+
+        if (productsData) {
+          setProducts(
+            productsData.map((p) => ({
+              id: p.id,
+              nameAr: p.name_ar,
+              slug: p.slug,
+              categoryId: p.category_id || '',
+              categoryName: (p.categories as any)?.name_ar || '',
+              shortDescription: p.short_description || '',
+              fullDescription: p.full_description || '',
+              basePrice: Number(p.base_price),
+              originalPrice: p.original_price ? Number(p.original_price) : undefined,
+              unit: p.unit,
+              sizes: [],
+              mainImage: p.main_image || '',
+              additionalImages: p.additional_images || [],
+              isAvailable: p.is_available,
+              isFeatured: p.is_featured,
+              discountPercentage: p.discount_percentage || undefined,
+            }))
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching offer products:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleCategoryChange = (categoryId: string) => {
     if (categoryId === selectedCategory) {
       searchParams.delete('category');
     } else {
       searchParams.set('category', categoryId);
     }
+    // Clear offer filter when selecting category
+    searchParams.delete('offer');
+    setSearchParams(searchParams);
+  };
+
+  const handleOfferChange = (offerId: string) => {
+    if (offerId === selectedOffer) {
+      searchParams.delete('offer');
+    } else {
+      searchParams.set('offer', offerId);
+    }
+    // Clear category filter when selecting offer
+    searchParams.delete('category');
     setSearchParams(searchParams);
   };
 
@@ -100,17 +186,18 @@ const ProductsPage = () => {
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Filter by search
-    if (searchQuery) {
+    // Filter by search query - FIXED
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
       filtered = filtered.filter((p) =>
-        p.nameAr.includes(searchQuery) ||
-        p.shortDescription.includes(searchQuery) ||
-        p.categoryName.includes(searchQuery)
+        p.nameAr.toLowerCase().includes(query) ||
+        p.shortDescription.toLowerCase().includes(query) ||
+        p.categoryName.toLowerCase().includes(query)
       );
     }
 
     // Filter by category
-    if (selectedCategory) {
+    if (selectedCategory && !selectedOffer) {
       filtered = filtered.filter((p) => p.categoryId === selectedCategory);
     }
 
@@ -128,7 +215,7 @@ const ProductsPage = () => {
     }
 
     return filtered;
-  }, [products, searchQuery, selectedCategory, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedOffer, sortBy]);
 
   const selectedCategoryName = categories.find((c) => c.id === selectedCategory)?.nameAr;
 
@@ -141,11 +228,11 @@ const ProductsPage = () => {
             <span>الرئيسية</span>
             <span className="mx-2">/</span>
             <span className="text-primary">
-              {selectedCategoryName || 'جميع المنتجات'}
+              {selectedCategoryName || (selectedOffer ? 'العروض' : 'جميع المنتجات')}
             </span>
           </nav>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-            {selectedCategoryName || 'جميع المنتجات'}
+            {selectedCategoryName || (selectedOffer ? 'المنتجات المشمولة في العرض' : 'جميع المنتجات')}
           </h1>
         </div>
 
@@ -176,10 +263,11 @@ const ProductsPage = () => {
               </div>
 
               {/* Clear Filters */}
-              {selectedCategory && (
+              {(selectedCategory || selectedOffer) && (
                 <button
                   onClick={() => {
                     searchParams.delete('category');
+                    searchParams.delete('offer');
                     setSearchParams(searchParams);
                   }}
                   className="w-full py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
@@ -203,7 +291,7 @@ const ProductsPage = () => {
                     placeholder="ابحث عن منتج..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input-rtl pr-10"
+                    className="input-rtl pr-10 w-full"
                   />
                 </div>
 
@@ -252,16 +340,28 @@ const ProductsPage = () => {
               </p>
 
               {/* Active Filters */}
-              {selectedCategory && (
-                <div className="flex items-center gap-2 mt-3">
+              {(selectedCategory || selectedOffer) && (
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <span className="text-sm text-muted-foreground">الفلاتر:</span>
-                  <button
-                    onClick={() => handleCategoryChange(selectedCategory)}
-                    className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
-                  >
-                    {selectedCategoryName}
-                    <X className="w-4 h-4" />
-                  </button>
+                  {selectedCategory && (
+                    <button
+                      onClick={() => handleCategoryChange(selectedCategory)}
+                      className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
+                    >
+                      {selectedCategoryName}
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {selectedOffer && (
+                    <button
+                      onClick={() => handleOfferChange(selectedOffer)}
+                      className="inline-flex items-center gap-1 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-sm"
+                    >
+                      <BadgePercent className="w-3 h-3" />
+                      عرض خاص
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -348,10 +448,11 @@ const ProductsPage = () => {
             </div>
 
             {/* Clear Filters */}
-            {selectedCategory && (
+            {(selectedCategory || selectedOffer) && (
               <button
                 onClick={() => {
                   searchParams.delete('category');
+                  searchParams.delete('offer');
                   setSearchParams(searchParams);
                   setShowFilters(false);
                 }}

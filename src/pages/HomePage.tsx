@@ -446,7 +446,7 @@ const HomePage = () => {
                         ينتهي: {new Date(offer.end_date).toLocaleDateString('ar-EG')}
                       </span>
                       <Link 
-                        to="/products" 
+                        to={`/products?offer=${offer.id}`} 
                         className="text-primary hover:text-primary-dark font-bold flex items-center gap-1 group/link"
                       >
                         تسوق الآن

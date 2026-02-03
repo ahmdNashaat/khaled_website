@@ -127,18 +127,29 @@ const AdminOrders = () => {
     setIsDeleting(true);
     try {
       // 1. حذف order_items أولاً (foreign-key constraint)
-      const { error: itemsErr } = await supabase
+      const { error: itemsErr, count: itemsCount } = await supabase
         .from('order_items')
         .delete()
-        .eq('order_id', orderToDelete.id);
+        .eq('order_id', orderToDelete.id)
+        .select(); // select() فعّل الـ count
+
       if (itemsErr) throw itemsErr;
 
       // 2. حذف الطلب نفسه
-      const { error: orderErr } = await supabase
+      const { error: orderErr, count: orderCount } = await supabase
         .from('orders')
         .delete()
-        .eq('id', orderToDelete.id);
+        .eq('id', orderToDelete.id)
+        .select(); // select() فعّل الـ count
+
       if (orderErr) throw orderErr;
+
+      // ─── لو الـ count = 0 يعني RLS منع الحذف بدون error واضح ──
+      if (orderCount === 0) {
+        toast.error('لم يتم الحذف — تحقق من صلاحيات RLS في Supabase');
+        setIsDeleting(false);
+        return;
+      }
 
       toast.success('تم حذف الطلب بنجاح');
       setDeleteDialogOpen(false);
