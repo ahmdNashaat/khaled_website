@@ -1,63 +1,88 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircle, MessageCircle, Send, ArrowRight, Clock, MapPin, ShoppingBag } from 'lucide-react';
+import { Clock, MapPin, ShoppingBag, ArrowRight, MessageCircle, CheckCircle2 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useOrdersStore } from '@/store/ordersStore';
 import { Order } from '@/types';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   });
-
-// ─── Component ───────────────────────────────────────────────────────────────
 
 const OrderConfirmationPage = () => {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   const getOrderById = useOrdersStore((state) => state.getOrderById);
-
   const order: Order | undefined = orderId ? getOrderById(orderId) : undefined;
 
-  // إذا مفيش طلب بهذا الـ id → redirect لصفحة طلباتي
+  // detect الـ user رجع من واتساب
+  const [returnedFromWhatsApp, setReturnedFromWhatsApp] = useState(false);
+
   useEffect(() => {
-    if (!order) {
-      navigate('/my-orders', { replace: true });
-    }
+    if (!order) navigate('/my-orders', { replace: true });
   }, [order, navigate]);
 
+  useEffect(() => {
+    const handler = () => {
+      if (document.visibilityState === 'visible') setReturnedFromWhatsApp(true);
+    };
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
   if (!order) return null;
+
+  const displayId = order.supabaseOrderId
+    ? order.supabaseOrderId.slice(0, 8)
+    : order.id;
 
   return (
     <Layout>
       <div className="section-container py-10">
         <div className="max-w-2xl mx-auto">
-          {/* ✅ Success Icon + Title */}
+
+          {/* Header – حالتين */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
             className="text-center mb-8"
           >
-            <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="w-14 h-14 text-green-600" />
-            </div>
-            <h1 className="text-3xl font-bold text-green-700 mb-2">تم إرسال الطلب بنجاح! 🎉</h1>
-            <p className="text-muted-foreground">
-              {order.contactMethod === 'whatsapp'
-                ? 'تم فتح واتساب وإرسال تفاصيل طلبك. انتظر ردّ البائع للتأكيد.'
-                : 'تم فتح ماسنجر وإرسال تفاصيل طلبك. انتظر ردّ البائع للتأكيد.'}
-            </p>
+            {returnedFromWhatsApp ? (
+              <>
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-14 h-14 text-green-600" />
+                </div>
+                <h1 className="text-3xl font-bold text-green-700 mb-2">تم إرسال الطلب بنجاح! 🎉</h1>
+                <p className="text-muted-foreground">
+                  الطلب اتبعت على واتساب، انتظر ردّ البائع للتأكيد النهائي.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-yellow-100 flex items-center justify-center">
+                  <Clock className="w-14 h-14 text-yellow-600" />
+                </div>
+                <h1 className="text-3xl font-bold text-yellow-700 mb-2">الطلب تحت الإعداد</h1>
+                <p className="text-muted-foreground mb-4">
+                  كان يجب أن يفتح واتساب تلقائياً. لو مفتحش اضغط الزر أبيه:
+                </p>
+                <a
+                  href={`https://wa.me/201276166532?text=${encodeURIComponent(`🛒 طلب جديد من متجر مذاق – رقم الطلب: ${displayId}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary inline-flex items-center gap-2"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  فتح واتساب يدوياً
+                </a>
+              </>
+            )}
           </motion.div>
 
-          {/* Order ID + Date */}
+          {/* Order ID */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -67,12 +92,12 @@ const OrderConfirmationPage = () => {
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
                 <p className="text-sm text-muted-foreground">رقم الطلب</p>
-                <p className="text-lg font-bold text-primary">{order.id}</p>
+                <p className="text-lg font-bold text-primary">#{displayId}</p>
               </div>
-              <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+              <span className="flex items-center gap-1.5 bg-yellow-50 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
                 <Clock className="w-4 h-4" />
                 انتظار التأكيد
-              </div>
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">{formatDate(order.createdAt)}</p>
           </motion.div>
@@ -91,11 +116,7 @@ const OrderConfirmationPage = () => {
             <div className="space-y-3">
               {order.items.map((item, idx) => (
                 <div key={idx} className="flex items-center gap-3">
-                  <img
-                    src={item.product.mainImage}
-                    alt={item.product.nameAr}
-                    className="w-14 h-14 object-cover rounded-lg shrink-0"
-                  />
+                  <img src={item.product.mainImage} alt={item.product.nameAr} className="w-14 h-14 object-cover rounded-lg shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{item.product.nameAr}</p>
                     <p className="text-sm text-muted-foreground">
@@ -125,17 +146,10 @@ const OrderConfirmationPage = () => {
               </div>
             )}
             <div className="flex items-start gap-3">
-              <div className={`w-5 h-5 shrink-0 mt-0.5 flex items-center justify-center`}>
-                {order.contactMethod === 'whatsapp'
-                  ? <MessageCircle className="w-5 h-5 text-green-600" />
-                  : <Send className="w-5 h-5 text-blue-500" />
-                }
-              </div>
+              <MessageCircle className="w-5 h-5 text-green-600 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-muted-foreground">طريقة التواصل</p>
-                <p className="font-semibold">
-                  {order.contactMethod === 'whatsapp' ? 'واتساب' : 'ماسنجر'}
-                </p>
+                <p className="font-semibold">واتساب</p>
               </div>
             </div>
             {order.notes && (
@@ -181,9 +195,7 @@ const OrderConfirmationPage = () => {
                 <span className="text-primary">{order.total.toFixed(2)} جنيه</span>
               </div>
               {order.savings > 0 && (
-                <p className="text-xs text-green-600 text-center pt-1">
-                  ✨ وفرت {order.savings.toFixed(2)} جنيه
-                </p>
+                <p className="text-xs text-green-600 text-center pt-1">✨ وفرت {order.savings.toFixed(2)} جنيه</p>
               )}
             </div>
           </motion.div>
@@ -195,17 +207,11 @@ const OrderConfirmationPage = () => {
             transition={{ delay: 0.55 }}
             className="flex flex-col sm:flex-row gap-3"
           >
-            <Link
-              to="/my-orders"
-              className="flex-1 btn-primary py-3 text-center flex items-center justify-center gap-2"
-            >
+            <Link to="/my-orders" className="flex-1 btn-primary py-3 text-center flex items-center justify-center gap-2">
               طلباتي
               <ArrowRight className="w-5 h-5 rotate-180" />
             </Link>
-            <Link
-              to="/products"
-              className="flex-1 py-3 text-center border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary/5 transition-colors"
-            >
+            <Link to="/products" className="flex-1 py-3 text-center border-2 border-primary text-primary rounded-xl font-semibold hover:bg-primary/5 transition-colors">
               مواصلة التسوق
             </Link>
           </motion.div>

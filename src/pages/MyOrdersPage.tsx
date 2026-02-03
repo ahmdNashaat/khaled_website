@@ -1,19 +1,14 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingBag, ArrowRight, Clock, MapPin, MessageCircle, Send } from 'lucide-react';
+import { ShoppingBag, ArrowRight, Clock, MapPin, MessageCircle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useOrdersStore } from '@/store/ordersStore';
 import { Order, OrderStatus } from '@/types';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    year: 'numeric', month: 'long', day: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   });
 
 const statusConfig: Record<OrderStatus, { label: string; bg: string; text: string }> = {
@@ -24,10 +19,11 @@ const statusConfig: Record<OrderStatus, { label: string; bg: string; text: strin
   delivered:          { label: 'تم التوصيل',      bg: 'bg-green-100',   text: 'text-green-700' },
 };
 
-// ─── Order Card ──────────────────────────────────────────────────────────────
-
 const OrderCard = ({ order, index }: { order: Order; index: number }) => {
   const status = statusConfig[order.status];
+  const displayId = order.supabaseOrderId
+    ? order.supabaseOrderId.slice(0, 8)
+    : order.id;
 
   return (
     <motion.div
@@ -39,18 +35,18 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
         to={`/orders/${order.id}`}
         className="block bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition-shadow"
       >
-        {/* Header Row */}
+        {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
           <div>
             <p className="text-xs text-muted-foreground">رقم الطلب</p>
-            <p className="font-bold text-primary">{order.id}</p>
+            <p className="font-bold text-primary">#{displayId}</p>
           </div>
           <span className={`text-xs font-semibold px-3 py-1 rounded-full ${status.bg} ${status.text}`}>
             {status.label}
           </span>
         </div>
 
-        {/* Items preview – show max 2 items then "+N more" */}
+        {/* Item thumbnails */}
         <div className="flex items-center gap-2 mb-3">
           {order.items.slice(0, 2).map((item, i) => (
             <img
@@ -70,7 +66,7 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
           </p>
         </div>
 
-        {/* Meta row */}
+        {/* Meta */}
         <div className="flex items-center justify-between text-xs text-muted-foreground flex-wrap gap-y-1">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
@@ -84,11 +80,8 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
               </span>
             )}
             <span className="flex items-center gap-1">
-              {order.contactMethod === 'whatsapp'
-                ? <MessageCircle className="w-3.5 h-3.5 text-green-600" />
-                : <Send className="w-3.5 h-3.5 text-blue-500" />
-              }
-              {order.contactMethod === 'whatsapp' ? 'واتساب' : 'ماسنجر'}
+              <MessageCircle className="w-3.5 h-3.5 text-green-600" />
+              واتساب
             </span>
           </div>
           <span className="font-bold text-primary text-sm">
@@ -100,12 +93,9 @@ const OrderCard = ({ order, index }: { order: Order; index: number }) => {
   );
 };
 
-// ─── Page ────────────────────────────────────────────────────────────────────
-
 const MyOrdersPage = () => {
   const orders = useOrdersStore((state) => state.orders);
 
-  // Empty state
   if (orders.length === 0) {
     return (
       <Layout>
@@ -135,13 +125,11 @@ const MyOrdersPage = () => {
   return (
     <Layout>
       <div className="section-container py-8">
-        {/* Breadcrumb */}
         <nav className="text-sm text-muted-foreground mb-4">
           <Link to="/" className="hover:text-primary">الرئيسية</Link>
           <span className="mx-2">/</span>
           <span className="text-primary">طلباتي</span>
         </nav>
-
         <h1 className="text-3xl font-bold mb-6">طلباتي</h1>
 
         <div className="max-w-2xl mx-auto space-y-4">

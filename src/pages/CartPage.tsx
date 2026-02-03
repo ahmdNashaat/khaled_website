@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle, 
-  Send, Gift, Sparkles, Tag, AlertCircle 
+import {
+  Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle,
+  Gift, Sparkles, Tag, Loader2
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCartStore } from '@/store/cartStore';
@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useOffers } from '@/hooks/useOffers';
 import { calculateCart } from '@/utils/offerCalculator';
+import { saveOrderToSupabase } from '@/utils/saveOrder';
 import { DeliveryArea } from '@/types';
 
 const CartPage = () => {
@@ -20,14 +21,12 @@ const CartPage = () => {
   const navigate = useNavigate();
   const [selectedArea, setSelectedArea] = useState('');
   const [notes, setNotes] = useState('');
-  const [contactMethod, setContactMethod] = useState<'whatsapp' | 'messenger'>('whatsapp');
-  
-  // جلب مناطق التوصيل والعروض
+  const [isSending, setIsSending] = useState(false);
+
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(true);
   const { offers, isLoading: isLoadingOffers } = useOffers();
 
-  // جلب مناطق التوصيل من database
   useEffect(() => {
     const fetchDeliveryAreas = async () => {
       try {
@@ -63,15 +62,13 @@ const CartPage = () => {
     fetchDeliveryAreas();
   }, []);
 
-  // حساب السلة مع العروض
   const deliveryArea = deliveryAreas.find((a) => a.id === selectedArea);
   const originalDeliveryFee = deliveryArea?.deliveryFee || 0;
-  
   const cartCalculation = calculateCart(items, offers, originalDeliveryFee);
 
   const whatsappNumber = '201276166532';
 
-  const formatOrderMessage = () => {
+  const formatOrderMessage = (supabaseOrderId?: string) => {
     const productLines = items
       .map((item) => {
         const price = item.selectedSize?.price || item.product.basePrice;
@@ -80,7 +77,6 @@ const CartPage = () => {
       })
       .join('\n');
 
-    // إضافة المنتجات المجانية
     let freeItemsText = '';
     cartCalculation.appliedOffers.forEach(applied => {
       if (applied.freeItems && applied.freeItems.length > 0) {
@@ -90,13 +86,13 @@ const CartPage = () => {
       }
     });
 
-    // إضافة العروض المطبقة
     const offersText = cartCalculation.appliedOffers.length > 0
       ? '\n\n*🎉 العروض المطبقة:*\n' + cartCalculation.appliedOffers.map(a => `- ${a.message}`).join('\n')
       : '';
 
     const message = `
 🛒 *طلب جديد من متجر مذاق*
+${supabaseOrderId ? `\n*🔖 رقم الطلب:* ${supabaseOrderId.slice(0, 8)}` : ''}
 
 *📦 المنتجات:*
 ${productLines}${freeItemsText}
@@ -115,9 +111,9 @@ ${offersText}
 ${notes ? `\n*📝 ملاحظات:* ${notes}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━
-_تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', { 
-  year: 'numeric', 
-  month: 'long', 
+_تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
+  year: 'numeric',
+  month: 'long',
   day: 'numeric',
   hour: '2-digit',
   minute: '2-digit'
@@ -127,46 +123,66 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
     return encodeURIComponent(message);
   };
 
-  const handleCheckout = () => {
+  // ─── Checkout: save first, then open WhatsApp ────────────────────────────
+  const handleCheckout = async () => {
     if (items.length === 0) {
       toast.error('السلة فارغة');
       return;
     }
-
     if (!selectedArea) {
       toast.error('يرجى اختيار منطقة التوصيل');
       return;
     }
 
-    // 1. حفظ الطلب في الـ store
-    const order = createOrder({
-      items,
-      deliveryArea,
-      notes,
-      contactMethod,
-      subtotal: cartCalculation.subtotal,
-      deliveryFee: cartCalculation.deliveryFee,
-      totalDiscount: cartCalculation.totalDiscount,
-      total: cartCalculation.total,
-      savings: cartCalculation.savings,
-      appliedOffers: cartCalculation.appliedOffers,
-    });
+    setIsSending(true);
 
-    // 2. فتح واتساب أو ماسنجر
-    const message = formatOrderMessage();
-    if (contactMethod === 'whatsapp') {
+    try {
+      // 1. حفظ في Supabase – لو فشل نوقف هنا فعلاً
+      const supabaseOrderId = await saveOrderToSupabase({
+        items,
+        deliveryArea,
+        notes,
+        subtotal: cartCalculation.subtotal,
+        deliveryFee: cartCalculation.deliveryFee,
+        totalDiscount: cartCalculation.totalDiscount,
+        total: cartCalculation.total,
+        appliedOffers: cartCalculation.appliedOffers,
+      });
+
+      // 2. حفظ محلياً في localStorage
+      const localOrder = createOrder({
+        items,
+        deliveryArea,
+        notes,
+        contactMethod: 'whatsapp',
+        subtotal: cartCalculation.subtotal,
+        deliveryFee: cartCalculation.deliveryFee,
+        totalDiscount: cartCalculation.totalDiscount,
+        total: cartCalculation.total,
+        savings: cartCalculation.savings,
+        appliedOffers: cartCalculation.appliedOffers,
+        supabaseOrderId,
+      });
+
+      // 3. فتح واتساب بعد الحفظ الناجح فقط
+      const message = formatOrderMessage(supabaseOrderId);
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
-    } else {
-      toast.info('خاصية الماسنجر قيد التطوير');
+
+      // 4. تفريغ السلة
+      clearCart();
+
+      // 5. navigate للـ confirmation
+      navigate(`/orders/${localOrder.id}`);
+
+    } catch (error) {
+      console.error('Error saving order:', error);
+      toast.error('حدث خطأ في حفظ الطلب، حاول مرة تانية');
+    } finally {
+      setIsSending(false);
     }
-
-    // 3. تفريغ السلة
-    clearCart();
-
-    // 4. التنقل لصفحة تأكيد الطلب
-    navigate(`/orders/${order.id}`);
   };
 
+  // ─── Empty cart ───────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
       <Layout>
@@ -193,10 +209,10 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
     );
   }
 
+  // ─── Main render ──────────────────────────────────────────────────────────
   return (
     <Layout>
       <div className="section-container py-8">
-        {/* Page Header */}
         <div className="mb-8">
           <nav className="text-sm text-muted-foreground mb-4">
             <Link to="/" className="hover:text-primary">الرئيسية</Link>
@@ -222,7 +238,6 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                     exit={{ opacity: 0, x: -20 }}
                     className="bg-white rounded-2xl p-4 shadow-md flex gap-4"
                   >
-                    {/* Image */}
                     <Link to={`/products/${item.product.id}`} className="shrink-0">
                       <img
                         src={item.product.mainImage}
@@ -231,7 +246,6 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                       />
                     </Link>
 
-                    {/* Details */}
                     <div className="flex-1 min-w-0">
                       <Link
                         to={`/products/${item.product.id}`}
@@ -246,17 +260,10 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                         {item.selectedSize?.label || item.product.unit} - {price} جنيه
                       </p>
 
-                      {/* Quantity & Actions */}
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center border rounded-lg overflow-hidden">
                           <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.product.id,
-                                item.quantity - 1,
-                                item.selectedSize?.id
-                              )
-                            }
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedSize?.id)}
                             disabled={item.quantity <= 1}
                             className="p-2 hover:bg-muted disabled:opacity-50 transition-colors"
                           >
@@ -264,13 +271,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                           </button>
                           <span className="px-4 font-medium">{item.quantity}</span>
                           <button
-                            onClick={() =>
-                              updateQuantity(
-                                item.product.id,
-                                item.quantity + 1,
-                                item.selectedSize?.id
-                              )
-                            }
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedSize?.id)}
                             className="p-2 hover:bg-muted transition-colors"
                           >
                             <Plus className="w-4 h-4" />
@@ -282,9 +283,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                             {lineTotal.toFixed(2)} جنيه
                           </span>
                           <button
-                            onClick={() =>
-                              removeItem(item.product.id, item.selectedSize?.id)
-                            }
+                            onClick={() => removeItem(item.product.id, item.selectedSize?.id)}
                             className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -309,7 +308,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                   <h3 className="text-lg font-bold text-purple-900">🎉 منتجات مجانية!</h3>
                 </div>
                 <div className="space-y-3">
-                  {cartCalculation.appliedOffers.map((applied, idx) => 
+                  {cartCalculation.appliedOffers.map((applied, idx) =>
                     applied.freeItems?.map((freeItem, fIdx) => (
                       <div key={`${idx}-${fIdx}`} className="flex items-center gap-3 bg-white/60 rounded-xl p-3">
                         <img
@@ -329,7 +328,6 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
               </motion.div>
             )}
 
-            {/* Continue Shopping */}
             <div className="flex items-center justify-between pt-4">
               <Link
                 to="/products"
@@ -339,10 +337,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                 مواصلة التسوق
               </Link>
               <button
-                onClick={() => {
-                  clearCart();
-                  toast.success('تم تفريغ السلة');
-                }}
+                onClick={() => { clearCart(); toast.success('تم تفريغ السلة'); }}
                 className="text-destructive hover:underline text-sm"
               >
                 تفريغ السلة
@@ -355,13 +350,11 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
             <div className="bg-white rounded-2xl p-6 shadow-md sticky top-24 space-y-4">
               <h2 className="text-xl font-bold mb-6">ملخص الطلب</h2>
 
-              {/* Subtotal */}
               <div className="flex justify-between py-3 border-b">
                 <span className="text-muted-foreground">المجموع الفرعي</span>
                 <span className="font-medium">{cartCalculation.subtotal.toFixed(2)} جنيه</span>
               </div>
 
-              {/* العروض المطبقة */}
               {cartCalculation.appliedOffers.length > 0 && (
                 <div className="py-3 border-b space-y-2">
                   <div className="flex items-center gap-2 text-green-600 font-semibold mb-2">
@@ -373,20 +366,15 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                       <Tag className="w-4 h-4 text-green-600 mt-0.5" />
                       <div className="flex-1">
                         <p className="text-foreground">{applied.message}</p>
-                        <p className="text-green-600 font-semibold">
-                          - {applied.discount.toFixed(2)} جنيه
-                        </p>
+                        <p className="text-green-600 font-semibold">- {applied.discount.toFixed(2)} جنيه</p>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* Delivery Area */}
               <div className="py-4 border-b">
-                <label className="block text-sm font-medium mb-2">
-                  منطقة التوصيل
-                </label>
+                <label className="block text-sm font-medium mb-2">منطقة التوصيل</label>
                 {isLoadingAreas ? (
                   <div className="h-10 bg-muted animate-pulse rounded-xl" />
                 ) : (
@@ -403,15 +391,11 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                     ))}
                   </select>
                 )}
-                
                 {!isLoadingAreas && deliveryAreas.length === 0 && (
-                  <p className="text-sm text-destructive mt-2">
-                    لا توجد مناطق توصيل متاحة حالياً
-                  </p>
+                  <p className="text-sm text-destructive mt-2">لا توجد مناطق توصيل متاحة حالياً</p>
                 )}
               </div>
 
-              {/* Delivery Fee */}
               <div className="flex justify-between py-3 border-b">
                 <span className="text-muted-foreground">رسوم التوصيل</span>
                 <span className={`font-medium ${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? 'text-green-600 line-through' : ''}`}>
@@ -426,29 +410,20 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                 </span>
               </div>
 
-              {/* Total Savings */}
               {cartCalculation.savings > 0 && (
                 <div className="flex justify-between py-3 bg-green-50 -mx-6 px-6 rounded-lg">
                   <span className="text-green-700 font-semibold">✨ إجمالي التوفير</span>
-                  <span className="text-green-700 font-bold text-lg">
-                    {cartCalculation.savings.toFixed(2)} جنيه
-                  </span>
+                  <span className="text-green-700 font-bold text-lg">{cartCalculation.savings.toFixed(2)} جنيه</span>
                 </div>
               )}
 
-              {/* Total */}
               <div className="flex justify-between py-4 border-t-2">
                 <span className="text-lg font-bold">الإجمالي النهائي</span>
-                <span className="text-2xl font-bold text-primary">
-                  {cartCalculation.total.toFixed(2)} جنيه
-                </span>
+                <span className="text-2xl font-bold text-primary">{cartCalculation.total.toFixed(2)} جنيه</span>
               </div>
 
-              {/* Notes */}
               <div className="mb-4">
-                <label className="block text-sm font-medium mb-2">
-                  ملاحظات إضافية (اختياري)
-                </label>
+                <label className="block text-sm font-medium mb-2">ملاحظات إضافية (اختياري)</label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
@@ -457,52 +432,21 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                 />
               </div>
 
-              {/* Contact Method */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  طريقة التواصل
-                </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setContactMethod('whatsapp')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      contactMethod === 'whatsapp'
-                        ? 'border-success bg-success/10 text-success'
-                        : 'border-border hover:border-success'
-                    }`}
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    واتساب
-                  </button>
-                  <button
-                    onClick={() => setContactMethod('messenger')}
-                    className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      contactMethod === 'messenger'
-                        ? 'border-blue-500 bg-blue-50 text-blue-600'
-                        : 'border-border hover:border-blue-500'
-                    }`}
-                  >
-                    <Send className="w-5 h-5" />
-                    ماسنجر
-                  </button>
-                </div>
-              </div>
-
-              {/* Checkout Button */}
+              {/* زر واتساب فقط */}
               <button
                 onClick={handleCheckout}
-                disabled={!selectedArea || isLoadingAreas}
+                disabled={!selectedArea || isLoadingAreas || isSending}
                 className="w-full btn-primary py-4 text-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {contactMethod === 'whatsapp' ? (
+                {isSending ? (
                   <>
-                    <MessageCircle className="w-5 h-5" />
-                    إتمام الطلب عبر واتساب
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    جاري حفظ الطلب...
                   </>
                 ) : (
                   <>
-                    <Send className="w-5 h-5" />
-                    إتمام الطلب عبر ماسنجر
+                    <MessageCircle className="w-5 h-5" />
+                    إتمام الطلب عبر واتساب
                   </>
                 )}
               </button>

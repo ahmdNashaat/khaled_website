@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, FolderTree, ShoppingCart, Tag, TrendingUp, Clock } from 'lucide-react';
+import { Package, FolderTree, ShoppingCart, Tag, TrendingUp, Clock, ArrowRight } from 'lucide-react';
 
 interface DashboardStats {
   productsCount: number;
@@ -34,7 +35,7 @@ const AdminDashboard = () => {
           supabase.from('categories').select('id', { count: 'exact', head: true }),
           supabase.from('orders').select('id, total', { count: 'exact' }),
           supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-          supabase.from('offers').select('id', { count: 'exact', head: true }),
+          supabase.from('offers').select('id', { count: 'exact', head: true }).eq('is_active', true),
         ]);
 
         const totalRevenue = orders.data?.reduce((sum, order) => sum + Number(order.total), 0) || 0;
@@ -48,7 +49,6 @@ const AdminDashboard = () => {
           totalRevenue,
         });
 
-        // Fetch recent orders
         const { data: recent } = await supabase
           .from('orders')
           .select('*')
@@ -67,36 +67,11 @@ const AdminDashboard = () => {
   }, []);
 
   const statCards = [
-    {
-      title: 'المنتجات',
-      value: stats.productsCount,
-      icon: Package,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'الأقسام',
-      value: stats.categoriesCount,
-      icon: FolderTree,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'إجمالي الطلبات',
-      value: stats.ordersCount,
-      icon: ShoppingCart,
-      color: 'bg-purple-500',
-    },
-    {
-      title: 'طلبات معلقة',
-      value: stats.pendingOrdersCount,
-      icon: Clock,
-      color: 'bg-yellow-500',
-    },
-    {
-      title: 'العروض النشطة',
-      value: stats.offersCount,
-      icon: Tag,
-      color: 'bg-pink-500',
-    },
+    { title: 'المنتجات', value: stats.productsCount, icon: Package, color: 'bg-blue-500' },
+    { title: 'الأقسام', value: stats.categoriesCount, icon: FolderTree, color: 'bg-green-500' },
+    { title: 'إجمالي الطلبات', value: stats.ordersCount, icon: ShoppingCart, color: 'bg-purple-500' },
+    { title: 'طلبات معلقة', value: stats.pendingOrdersCount, icon: Clock, color: 'bg-yellow-500' },
+    { title: 'العروض النشطة', value: stats.offersCount, icon: Tag, color: 'bg-pink-500' },
     {
       title: 'إجمالي المبيعات',
       value: `${stats.totalRevenue.toLocaleString('ar-EG')} ج.م`,
@@ -107,7 +82,7 @@ const AdminDashboard = () => {
   ];
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { label: string; className: string }> = {
+    const map: Record<string, { label: string; className: string }> = {
       pending: { label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
       confirmed: { label: 'مؤكد', className: 'bg-blue-100 text-blue-800' },
       processing: { label: 'قيد التجهيز', className: 'bg-purple-100 text-purple-800' },
@@ -115,13 +90,12 @@ const AdminDashboard = () => {
       delivered: { label: 'تم التسليم', className: 'bg-green-100 text-green-800' },
       cancelled: { label: 'ملغي', className: 'bg-red-100 text-red-800' },
     };
-    return statusMap[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
+    return map[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
   };
 
   return (
     <AdminLayout>
       <div className="space-y-6">
-        {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">لوحة التحكم</h1>
           <p className="text-muted-foreground">مرحباً بك في لوحة تحكم متجر مذاق</p>
@@ -158,10 +132,16 @@ const AdminDashboard = () => {
         {/* Recent Orders */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              أحدث الطلبات
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                أحدث الطلبات
+              </CardTitle>
+              <Link to="/admin/orders" className="text-sm text-primary hover:underline flex items-center gap-1">
+                عرض كل الطلبات
+                <ArrowRight className="h-4 w-4 rotate-180" />
+              </Link>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -190,7 +170,10 @@ const AdminDashboard = () => {
                           <td className="py-3 px-2 font-mono text-sm">
                             #{order.id.slice(0, 8)}
                           </td>
-                          <td className="py-3 px-2">{order.customer_name}</td>
+                          <td className="py-3 px-2">
+                            <p className="font-medium">{order.customer_name}</p>
+                            <p className="text-xs text-muted-foreground">{order.customer_city}</p>
+                          </td>
                           <td className="py-3 px-2">
                             {Number(order.total).toLocaleString('ar-EG')} ج.م
                           </td>

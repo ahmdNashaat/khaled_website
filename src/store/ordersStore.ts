@@ -2,12 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Order, OrderContactMethod, CartItem, DeliveryArea, AppliedOffer } from '@/types';
 
-// ─── Helper: generates a short unique id ────────────────────────────────────
-const generateId = (): string => {
-  return 'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
-};
+// ─── Helper ──────────────────────────────────────────────────────────────────
+const generateId = (): string =>
+  'ORD-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase();
 
-// ─── Input shape for creating a new order ───────────────────────────────────
+// ─── Input shape ─────────────────────────────────────────────────────────────
 export interface CreateOrderInput {
   items: CartItem[];
   deliveryArea: DeliveryArea | undefined;
@@ -19,14 +18,13 @@ export interface CreateOrderInput {
   total: number;
   savings: number;
   appliedOffers: AppliedOffer[];
+  supabaseOrderId?: string;   // الـ id من Supabase عشان نربطهم
 }
 
-// ─── Store interface ─────────────────────────────────────────────────────────
+// ─── Store ───────────────────────────────────────────────────────────────────
 interface OrdersState {
   orders: Order[];
-  /** Creates a new order, persists it, and returns the full Order object */
   createOrder: (input: CreateOrderInput) => Order;
-  /** Returns a single order by id, or undefined */
   getOrderById: (id: string) => Order | undefined;
 }
 
@@ -38,6 +36,7 @@ export const useOrdersStore = create<OrdersState>()(
       createOrder: (input) => {
         const order: Order = {
           id: generateId(),
+          supabaseOrderId: input.supabaseOrderId ?? null,
           createdAt: new Date().toISOString(),
           status: 'pending',
           contactMethod: input.contactMethod,
@@ -65,18 +64,14 @@ export const useOrdersStore = create<OrdersState>()(
         };
 
         set((state) => ({
-          orders: [order, ...state.orders], // الأحدث أولاً
+          orders: [order, ...state.orders],
         }));
 
         return order;
       },
 
-      getOrderById: (id) => {
-        return get().orders.find((o) => o.id === id);
-      },
+      getOrderById: (id) => get().orders.find((o) => o.id === id),
     }),
-    {
-      name: 'mazaq-orders', // مختلف عن mazaq-cart
-    }
+    { name: 'mazaq-orders' }
   )
 );
