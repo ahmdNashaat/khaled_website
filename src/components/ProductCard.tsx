@@ -3,8 +3,8 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Heart, Star } from 'lucide-react';
 import { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { toast } from 'sonner';
-import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -13,7 +13,8 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const addItem = useCartStore((state) => state.addItem);
-  const [isLiked, setIsLiked] = useState(false);
+  const isLiked = useFavoritesStore((state) => state.isFavorite(product.id));
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -28,8 +29,9 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const handleLike = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsLiked(!isLiked);
-    toast.success(isLiked ? 'تمت الإزالة من المفضلة' : 'تمت الإضافة للمفضلة', {
+    const wasLiked = isLiked;
+    toggleFavorite(product.id);
+    toast.success(wasLiked ? 'تمت الإزالة من المفضلة' : 'تمت الإضافة للمفضلة', {
       duration: 1500,
     });
   };

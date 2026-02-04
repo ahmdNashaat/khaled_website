@@ -13,8 +13,10 @@ import {
   User,
   ChevronDown,
   Bell,
+  Heart,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { NotificationBell } from '@/components/NotificationBell';
@@ -36,6 +38,7 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const itemCount = useCartStore((state) => state.getItemCount());
+  const favoriteCount = useFavoritesStore((state) => state.getCount());
   const { user, isAdmin, signOut } = useAuth();
   const profileLink = isAdmin ? '/admin/settings' : '/profile';
   const profileLabel = isAdmin ? 'إعدادات الحساب' : 'الملف الشخصي';
@@ -202,6 +205,32 @@ const Header = () => {
               <Search className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </motion.button>
 
+            {!isAdmin && (
+              <>
+                {/* Favorites Button */}
+                <Link to="/favorites">
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="relative w-11 h-11 rounded-xl bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all shadow-sm hover:shadow-md group"
+                    title="المفضلة"
+                  >
+                    <Heart className="w-5 h-5" />
+                    {favoriteCount > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-2 -left-2 w-6 h-6 bg-destructive text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg ring-2 ring-white"
+                      >
+                        {favoriteCount}
+                      </motion.span>
+                    )}
+                  </motion.div>
+                </Link>
+              </>
+            )}
+
+
             {/* Cart Button (ENHANCED) */}
             <Link to="/cart">
               <motion.div
@@ -289,6 +318,16 @@ const Header = () => {
                       <span>{profileLabel}</span>
                     </Link>
                   </DropdownMenuItem>
+                  
+                  {!isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/favorites" className="flex items-center gap-3 cursor-pointer py-2.5">
+                        <Heart className="w-4 h-4 text-muted-foreground" />
+                        <span>المفضلة</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
                   
                   {/* FOR REGULAR USERS - طلباتي */}
                   {!isAdmin && (
@@ -467,6 +506,17 @@ const Header = () => {
                   </Link>
                   
                   {/* For Regular Users */}
+                  {!isAdmin && (
+                    <Link
+                      to="/favorites"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
+                    >
+                      <Heart className="w-5 h-5 text-muted-foreground" />
+                      المفضلة
+                    </Link>
+                  )}
+
                   {!isAdmin && (
                     <Link
                       to="/my-orders"

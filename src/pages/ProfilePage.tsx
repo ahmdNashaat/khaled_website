@@ -9,10 +9,12 @@ import {
   Phone,
   Wallet,
   Edit,
+  Heart,
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrdersStore } from '@/store/ordersStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -43,6 +45,8 @@ const ProfilePage = () => {
   const navigate = useNavigate();
   const getUserOrders = useOrdersStore((state) => state.getUserOrders);
   const orders = user ? getUserOrders(user.id) : [];
+
+  const favoriteCount = useFavoritesStore((state) => state.favoriteIds.length);
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -257,6 +261,12 @@ const ProfilePage = () => {
                 <CardTitle className="text-base">إجراءات الحساب</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                <Link to="/favorites">
+                  <Button variant="ghost" className="w-full justify-start">
+                    <Heart className="w-4 h-4 ml-2" />
+                    المفضلة
+                  </Button>
+                </Link>
                 <Link to="/my-orders">
                   <Button variant="ghost" className="w-full justify-start">
                     <ShoppingBag className="w-4 h-4 ml-2" />

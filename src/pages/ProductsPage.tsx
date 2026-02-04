@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Search, Filter, Grid, List, X, BadgePercent } from 'lucide-react';
+import { Search, Filter, Grid, List, X, BadgePercent, Heart } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductCard from '@/components/ProductCard';
 import { supabase } from '@/integrations/supabase/client';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { Product, Category } from '@/types';
 
 const ProductsPage = () => {
@@ -25,6 +26,8 @@ const ProductsPage = () => {
   const selectedCategory = searchParams.get('category') || '';
   const selectedOffer = searchParams.get('offer') || '';
   const sortBy = searchParams.get('sort') || 'newest';
+  const favoriteIds = useFavoritesStore((state) => state.favoriteIds);
+  const onlyFavorites = searchParams.get('favorites') === '1';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -183,10 +186,19 @@ const ProductsPage = () => {
     setSearchParams(searchParams);
   };
 
+  const handleFavoritesToggle = () => {
+    if (onlyFavorites) {
+      searchParams.delete('favorites');
+    } else {
+      searchParams.set('favorites', '1');
+    }
+    setSearchParams(searchParams);
+  };
+
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
 
-    // Filter by search query - FIXED
+    // Filter by search query - FI?ED
     if (searchQuery.trim()) {
       const query = searchQuery.trim().toLowerCase();
       filtered = filtered.filter((p) =>
@@ -194,6 +206,11 @@ const ProductsPage = () => {
         p.shortDescription.toLowerCase().includes(query) ||
         p.categoryName.toLowerCase().includes(query)
       );
+    }
+
+    // Filter by favorites
+    if (onlyFavorites) {
+      filtered = filtered.filter((p) => favoriteIds.includes(p.id));
     }
 
     // Filter by category
@@ -215,7 +232,7 @@ const ProductsPage = () => {
     }
 
     return filtered;
-  }, [products, searchQuery, selectedCategory, selectedOffer, sortBy]);
+  }, [products, searchQuery, selectedCategory, selectedOffer, sortBy, favoriteIds, onlyFavorites]);
 
   const selectedCategoryName = categories.find((c) => c.id === selectedCategory)?.nameAr;
 
@@ -242,6 +259,23 @@ const ProductsPage = () => {
             <div className="bg-white rounded-2xl p-6 shadow-md sticky top-24">
               <h2 className="text-lg font-bold mb-4">الفلاتر</h2>
 
+              {/* Favorites */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">المفضلة</h3>
+                <button
+                  onClick={handleFavoritesToggle}
+                  className={`w-full px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
+                    onlyFavorites ? 'bg-destructive text-destructive-foreground' : 'hover:bg-muted'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Heart className="w-4 h-4" />
+                    عرض المفضلة فقط
+                  </span>
+                  <span className="text-xs font-semibold">{favoriteIds.length}</span>
+                </button>
+              </div>
+
               {/* Categories */}
               <div className="mb-6">
                 <h3 className="font-semibold mb-3">الأقسام</h3>
@@ -263,11 +297,12 @@ const ProductsPage = () => {
               </div>
 
               {/* Clear Filters */}
-              {(selectedCategory || selectedOffer) && (
+              {(selectedCategory || selectedOffer || onlyFavorites) && (
                 <button
                   onClick={() => {
                     searchParams.delete('category');
                     searchParams.delete('offer');
+                    searchParams.delete('favorites');
                     setSearchParams(searchParams);
                   }}
                   className="w-full py-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
@@ -308,6 +343,18 @@ const ProductsPage = () => {
                     <option value="price-high">السعر: من الأعلى للأقل</option>
                   </select>
 
+                  <button
+                    onClick={handleFavoritesToggle}
+                    className={`hidden sm:inline-flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors ${
+                      onlyFavorites
+                        ? 'border-destructive text-destructive bg-destructive/10'
+                        : 'border-border hover:bg-muted'
+                    }`}
+                  >
+                    <Heart className="w-4 h-4" />
+                    المفضلة
+                  </button>
+
                   {/* View Toggle */}
                   <div className="hidden sm:flex items-center border rounded-lg overflow-hidden">
                     <button
@@ -340,7 +387,7 @@ const ProductsPage = () => {
               </p>
 
               {/* Active Filters */}
-              {(selectedCategory || selectedOffer) && (
+              {(selectedCategory || selectedOffer || onlyFavorites) && (
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   <span className="text-sm text-muted-foreground">الفلاتر:</span>
                   {selectedCategory && (
@@ -349,6 +396,16 @@ const ProductsPage = () => {
                       className="inline-flex items-center gap-1 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm"
                     >
                       {selectedCategoryName}
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                                    {onlyFavorites && (
+                    <button
+                      onClick={handleFavoritesToggle}
+                      className="inline-flex items-center gap-1 bg-destructive/10 text-destructive px-3 py-1 rounded-full text-sm"
+                    >
+                      <Heart className="w-3 h-3" />
+                      المفضلة
                       <X className="w-4 h-4" />
                     </button>
                   )}
@@ -424,6 +481,26 @@ const ProductsPage = () => {
               </button>
             </div>
 
+            {/* Favorites */}
+            <div className="mb-6">
+              <h3 className="font-semibold mb-3">المفضلة</h3>
+              <button
+                onClick={() => {
+                  handleFavoritesToggle();
+                  setShowFilters(false);
+                }}
+                className={`w-full px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
+                  onlyFavorites ? 'bg-destructive text-destructive-foreground' : 'hover:bg-muted'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Heart className="w-4 h-4" />
+                  عرض المفضلة فقط
+                </span>
+                <span className="text-xs font-semibold">{favoriteIds.length}</span>
+              </button>
+            </div>
+
             {/* Categories */}
             <div className="mb-6">
               <h3 className="font-semibold mb-3">الأقسام</h3>
@@ -448,11 +525,12 @@ const ProductsPage = () => {
             </div>
 
             {/* Clear Filters */}
-            {(selectedCategory || selectedOffer) && (
+            {(selectedCategory || selectedOffer || onlyFavorites) && (
               <button
                 onClick={() => {
                   searchParams.delete('category');
                   searchParams.delete('offer');
+                  searchParams.delete('favorites');
                   setSearchParams(searchParams);
                   setShowFilters(false);
                 }}

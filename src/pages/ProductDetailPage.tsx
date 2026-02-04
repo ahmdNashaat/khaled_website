@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ShoppingCart, Plus, Minus, Share2, ArrowRight, Check, Truck } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Share2, ArrowRight, Check, Truck, Heart } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import ProductCard from '@/components/ProductCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useCartStore } from '@/store/cartStore';
+import { useFavoritesStore } from '@/store/favoritesStore';
 import { toast } from 'sonner';
 import { Product, ProductSize } from '@/types';
 
@@ -13,6 +14,8 @@ const ProductDetailPage = () => {
   const { id } = useParams();
   const addItem = useCartStore((state) => state.addItem);
   const [product, setProduct] = useState<Product | null>(null);
+  const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
+  const isFavorite = useFavoritesStore((state) => (product ? state.isFavorite(product.id) : false));
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [sizes, setSizes] = useState<ProductSize[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -187,6 +190,15 @@ const ProductDetailPage = () => {
     }
   };
 
+  const handleToggleFavorite = () => {
+    if (!product) return;
+    const wasFavorite = isFavorite;
+    toggleFavorite(product.id);
+    toast.success(
+      wasFavorite ? '?????? ?????????? ???????????? ???? ??????????????' : '?????? ?????????? ???????????? ??????????????'
+    );
+  };
+
   return (
     <Layout>
       <div className="section-container py-8">
@@ -351,6 +363,17 @@ const ProductDetailPage = () => {
               >
                 <ShoppingCart className="w-5 h-5" />
                 إضافة للسلة
+              </button>
+              <button
+                onClick={handleToggleFavorite}
+                className={`p-3 border-2 rounded-xl transition-colors ${
+                  isFavorite
+                    ? 'border-destructive text-destructive bg-destructive/10'
+                    : 'border-border hover:bg-muted'
+                }`}
+                aria-label="?????????? ??????????????"
+              >
+                <Heart className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
               </button>
               <button
                 onClick={handleShare}
