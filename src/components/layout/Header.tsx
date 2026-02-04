@@ -37,6 +37,9 @@ const Header = () => {
   const navigate = useNavigate();
   const itemCount = useCartStore((state) => state.getItemCount());
   const { user, isAdmin, signOut } = useAuth();
+  const profileLink = isAdmin ? '/admin/settings' : '/profile';
+  const profileLabel = isAdmin ? 'إعدادات الحساب' : 'الملف الشخصي';
+  const ProfileIcon = isAdmin ? Settings : User;
 
   const navLinks = [
     { to: '/', label: 'الرئيسية' },
@@ -283,9 +286,9 @@ const Header = () => {
 
                   {/* Profile Link */}
                   <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex items-center gap-3 cursor-pointer py-2.5">
-                      <User className="w-4 h-4 text-muted-foreground" />
-                      <span>حسابي الشخصي</span>
+                    <Link to={profileLink} className="flex items-center gap-3 cursor-pointer py-2.5">
+                      <ProfileIcon className="w-4 h-4 text-muted-foreground" />
+                      <span>{profileLabel}</span>
                     </Link>
                   </DropdownMenuItem>
                   
@@ -458,12 +461,12 @@ const Header = () => {
 
                   {/* Profile Link */}
                   <Link
-                    to="/profile"
+                    to={profileLink}
                     onClick={() => setIsMenuOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
                   >
-                    <User className="w-5 h-5 text-muted-foreground" />
-                    حسابي الشخصي
+                    <ProfileIcon className="w-5 h-5 text-muted-foreground" />
+                    {profileLabel}
                   </Link>
                   
                   {/* For Regular Users */}

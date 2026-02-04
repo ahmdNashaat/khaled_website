@@ -77,6 +77,9 @@ export interface UserAddress {
   created_at?: string;
 }
 
+export type Profile = UserProfile;
+export type Address = UserAddress;
+
 // Advanced Offer Types
 export type OfferType =
   | 'percentage'

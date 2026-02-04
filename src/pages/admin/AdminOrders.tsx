@@ -71,11 +71,11 @@ const AdminOrders = () => {
 
   useEffect(() => {
     if (!isAuthLoading && !isAdmin) {
-      toast.error('Admin access required');
+      toast.error('هذه الصفحة للمسؤولين فقط');
     }
   }, [isAdmin, isAuthLoading]);
 
-useEffect(() => {
+  useEffect(() => {
     fetchOrders();
   }, []);
 
@@ -89,7 +89,7 @@ useEffect(() => {
       if (error) throw error;
       toast.success('تم تحديث حالة الطلب');
       fetchOrders();
-      
+
       if (selectedOrder?.id === orderId) {
         setSelectedOrder({ ...selectedOrder, status: newStatus });
       }
@@ -99,7 +99,6 @@ useEffect(() => {
     }
   };
 
-  /* ─── delete ─────────────────────────────────────── */
   // فتح dialog التأكيد فقط — الحذف الفعلي في confirmDelete
   const requestDelete = (order: AdminOrder) => {
     setOrderToDelete(order);
@@ -111,7 +110,7 @@ useEffect(() => {
     if (!orderToDelete) return;
     setIsDeleting(true);
     try {
-      console.log('??? Starting delete for order:', orderToDelete.id);
+      console.log('Starting delete for order:', orderToDelete.id);
 
       const { data: deletedItems, error: itemsErr, count: itemsCount } = await supabase
         .from('order_items')
@@ -119,10 +118,10 @@ useEffect(() => {
         .eq('order_id', orderToDelete.id)
         .select();
 
-      console.log('?? Items delete result:', { deletedItems, itemsCount, itemsErr });
+      console.log('Items delete result:', { deletedItems, itemsCount, itemsErr });
 
       if (itemsErr) {
-        console.error('? Items delete error:', itemsErr);
+        console.error('Items delete error:', itemsErr);
         throw new Error(`Failed to delete order items: ${itemsErr.message}`);
       }
 
@@ -132,29 +131,29 @@ useEffect(() => {
         .eq('id', orderToDelete.id)
         .select();
 
-      console.log('?? Order delete result:', { deletedOrder, orderCount, orderErr });
+      console.log('Order delete result:', { deletedOrder, orderCount, orderErr });
 
       if (orderErr) {
-        console.error('? Order delete error:', orderErr);
+        console.error('Order delete error:', orderErr);
         throw new Error(`Failed to delete order: ${orderErr.message}`);
       }
 
       if (orderCount === 0) {
-        console.error('?? RLS Policy Issue: Delete returned 0 rows');
-        toast.error('Delete blocked by RLS policy - check admin permissions in Supabase');
+        console.error('RLS Policy Issue: Delete returned 0 rows');
+        toast.error('الحذف مرفوض بسبب صلاحيات RLS، تحقق من صلاحيات الأدمن في Supabase');
         return;
       }
 
-      console.log('? Order deleted successfully');
-      toast.success('???? ?????? ?????????? ??????????');
+      console.log('Order deleted successfully');
+      toast.success('تم حذف الطلب بنجاح');
       setDeleteDialogOpen(false);
       setDialogOpen(false);
       setOrderToDelete(null);
       setSelectedOrder(null);
       fetchOrders();
     } catch (error: any) {
-      console.error('?? Delete operation failed:', error);
-      toast.error(error.message || '?????? ???? ?????? ??????????');
+      console.error('Delete operation failed:', error);
+      toast.error(error.message || 'حدث خطأ أثناء حذف الطلب');
     } finally {
       setIsDeleting(false);
     }
@@ -175,7 +174,7 @@ useEffect(() => {
       order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer_phone.includes(searchTerm) ||
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.order_number || "").toLowerCase().includes(searchTerm.toLowerCase());
+      (order.order_number || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -329,7 +328,7 @@ useEffect(() => {
           onRequestDelete={requestDelete}
         />
 
-        {/* ─── حذف — dialog التأكيد ────────────────────────── */}
+        {/* حذف — dialog التأكيد */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
@@ -344,7 +343,7 @@ useEffect(() => {
 
             <div className="py-4 space-y-3">
               <p className="text-muted-foreground">
-                هل أنت متأكد إنك عاوز تحذف الطلب؟ كل بيانات الطلب والمنتجات المرتبطة بيه هتتحذف نهائياً.
+                هل أنت متأكد أنك تريد حذف الطلب؟ سيتم حذف جميع بيانات الطلب والمنتجات المرتبطة به نهائياً.
               </p>
               {orderToDelete && (
                 <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-1.5">

@@ -25,6 +25,7 @@ import AdminOrders from '@/pages/admin/AdminOrders';
 import AdminOffers from '@/pages/admin/AdminOffers';
 import AdminDeliveryAreas from '@/pages/admin/AdminDeliveryAreas';
 import AdminHeroBanners from '@/pages/admin/AdminHeroBanners'; // ⭐ جديد
+import AdminSettings from '@/pages/admin/AdminSettings';
 
 function App() {
   return (
@@ -53,6 +54,7 @@ function App() {
           <Route path="/admin/offers" element={<AdminOffers />} />
           <Route path="/admin/delivery-areas" element={<AdminDeliveryAreas />} />
           <Route path="/admin/hero-banners" element={<AdminHeroBanners />} /> {/* ⭐ جديد */}
+          <Route path="/admin/settings" element={<AdminSettings />} />
 
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
