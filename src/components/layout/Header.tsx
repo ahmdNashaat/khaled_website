@@ -12,7 +12,7 @@ import {
   LogOut,
   User,
   ChevronDown,
-  Heart,
+  Bell,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,9 +22,11 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -88,6 +90,14 @@ const Header = () => {
     }
   };
 
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (user?.user_metadata?.full_name) {
+      return user.user_metadata.full_name.charAt(0).toUpperCase();
+    }
+    return user?.email?.charAt(0).toUpperCase() || 'U';
+  };
+
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -129,7 +139,7 @@ const Header = () => {
       <div className="section-container py-3 sm:py-4">
         <div className="flex items-center justify-between gap-4">
           {/* === LOGO === */}
-          <Link to="/" className="flex items-center gap-3 group">
+          <Link to="/" className="flex items-center gap-3 group shrink-0">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
@@ -153,12 +163,12 @@ const Header = () => {
           </Link>
 
           {/* === DESKTOP NAV === */}
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
             {navLinks.map((link) => (
               <Link
                 key={link.to}
                 to={link.to}
-                className={`relative px-4 py-2 font-semibold transition-all duration-200 rounded-lg ${
+                className={`relative px-5 py-2.5 font-semibold transition-all duration-200 rounded-lg ${
                   isActive(link.to)
                     ? 'text-primary bg-primary/10'
                     : 'text-foreground hover:text-primary hover:bg-muted'
@@ -176,49 +186,33 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* === ACTIONS === */}
-          <div className="flex items-center gap-2">
+          {/* === ACTIONS (IMPROVED SPACING) === */}
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Search Button */}
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsSearchOpen(!isSearchOpen)}
-              className="hidden sm:flex w-10 h-10 rounded-xl hover:bg-muted items-center justify-center transition-colors"
+              className="hidden sm:flex w-11 h-11 rounded-xl hover:bg-muted items-center justify-center transition-colors group"
+              aria-label="بحث"
             >
-              <Search className="w-5 h-5" />
+              <Search className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
             </motion.button>
 
-            {/* My Orders Button - Regular Users Only */}
-            {user && !isAdmin && (
-              <Link to="/my-orders">
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl border-2 border-primary text-primary flex items-center justify-center hover:bg-primary/10 transition-all"
-                  title="طلباتي"
-                >
-                  <Package className="w-5 h-5" />
-                </motion.div>
-              </Link>
-            )}
-
-            {user && (
-              <NotificationBell />
-            )}
-
-            {/* Cart Button - ENHANCED */}
+            {/* Cart Button (ENHANCED) */}
             <Link to="/cart">
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-primary to-primary-dark text-white flex items-center justify-center shadow-lg hover:shadow-xl transition-all"
+                className="relative w-11 h-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center hover:bg-primary hover:text-white transition-all shadow-sm hover:shadow-md group"
+                title="سلة التسوق"
               >
                 <ShoppingCart className="w-5 h-5" />
                 {itemCount > 0 && (
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-secondary text-secondary-foreground text-xs font-bold rounded-full flex items-center justify-center shadow-md"
+                    className="absolute -top-2 -left-2 w-6 h-6 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg ring-2 ring-white"
                   >
                     {itemCount}
                   </motion.span>
@@ -226,38 +220,81 @@ const Header = () => {
               </motion.div>
             </Link>
 
-            {/* User Menu - COMPLETELY REDESIGNED */}
+            {/* Notifications (ENHANCED) */}
+            {user && (
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
+            )}
+
+            {/* User Menu (ENHANCED) */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="hidden sm:flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-muted transition-colors"
+                    className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-xl hover:bg-muted transition-all border-2 border-transparent hover:border-primary/20"
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white font-bold">
-                      {user.email?.[0].toUpperCase() || 'U'}
+                    <Avatar className="w-9 h-9 sm:w-10 sm:h-10 ring-2 ring-primary/20">
+                      <AvatarImage src={user?.user_metadata?.avatar_url} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="hidden md:flex flex-col items-start">
+                      <span className="text-sm font-semibold text-foreground leading-none">
+                        {user?.user_metadata?.full_name || 'مستخدم'}
+                      </span>
+                      {isAdmin && (
+                        <span className="text-xs text-primary font-medium">مسؤول</span>
+                      )}
                     </div>
-                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    <ChevronDown className="w-4 h-4 text-muted-foreground hidden sm:block" />
                   </motion.button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-2 py-2 text-sm">
-                    <p className="font-semibold">{user.email}</p>
-                    {isAdmin && (
-                      <p className="text-xs text-primary font-semibold mt-0.5">
-                        • مسؤول النظام
-                      </p>
-                    )}
-                  </div>
+                <DropdownMenuContent align="end" className="w-64">
+                  {/* User Info Header */}
+                  <DropdownMenuLabel className="text-right">
+                    <div className="flex items-center gap-3 py-2">
+                      <Avatar className="w-12 h-12">
+                        <AvatarImage src={user?.user_metadata?.avatar_url} />
+                        <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold text-lg">
+                          {getUserInitials()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
+                          {user?.user_metadata?.full_name || 'مستخدم'}
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate" dir="ltr">
+                          {user?.email}
+                        </p>
+                        {isAdmin && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                            مسؤول النظام
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </DropdownMenuLabel>
+                  
                   <DropdownMenuSeparator />
+
+                  {/* Profile Link */}
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex items-center gap-3 cursor-pointer py-2.5">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <span>حسابي الشخصي</span>
+                    </Link>
+                  </DropdownMenuItem>
                   
                   {/* FOR REGULAR USERS - طلباتي */}
                   {!isAdmin && (
                     <DropdownMenuItem asChild>
-                      <Link to="/my-orders" className="flex items-center gap-2 cursor-pointer">
-                        <Package className="w-4 h-4" />
-                        طلباتي
+                      <Link to="/my-orders" className="flex items-center gap-3 cursor-pointer py-2.5">
+                        <Package className="w-4 h-4 text-muted-foreground" />
+                        <span>طلباتي</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -265,16 +302,20 @@ const Header = () => {
                   {/* FOR ADMINS ONLY - لوحة التحكم */}
                   {isAdmin && (
                     <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel className="text-xs text-muted-foreground">
+                        لوحة التحكم
+                      </DropdownMenuLabel>
                       <DropdownMenuItem asChild>
-                        <Link to="/admin" className="flex items-center gap-2 cursor-pointer">
-                          <Settings className="w-4 h-4" />
-                          لوحة التحكم
+                        <Link to="/admin" className="flex items-center gap-3 cursor-pointer py-2.5">
+                          <Settings className="w-4 h-4 text-muted-foreground" />
+                          <span>الإحصائيات</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem asChild>
-                        <Link to="/admin/orders" className="flex items-center gap-2 cursor-pointer">
-                          <Package className="w-4 h-4" />
-                          إدارة الطلبات
+                        <Link to="/admin/orders" className="flex items-center gap-3 cursor-pointer py-2.5">
+                          <Package className="w-4 h-4 text-muted-foreground" />
+                          <span>إدارة الطلبات</span>
                         </Link>
                       </DropdownMenuItem>
                     </>
@@ -283,7 +324,7 @@ const Header = () => {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
-                    className="text-destructive focus:text-destructive cursor-pointer"
+                    className="text-destructive focus:text-destructive cursor-pointer py-2.5"
                   >
                     <LogOut className="w-4 h-4 ml-2" />
                     تسجيل الخروج
@@ -295,10 +336,10 @@ const Header = () => {
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl font-semibold shadow-md hover:shadow-lg transition-all"
+                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold shadow-md hover:shadow-lg transition-all"
                 >
                   <LogIn className="w-4 h-4" />
-                  دخول
+                  <span className="hidden sm:inline">دخول</span>
                 </motion.button>
               </Link>
             )}
@@ -308,7 +349,8 @@ const Header = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="lg:hidden w-10 h-10 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+              className="lg:hidden w-11 h-11 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
+              aria-label="القائمة"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </motion.button>
@@ -326,21 +368,21 @@ const Header = () => {
               className="overflow-hidden mt-4"
             >
               <form onSubmit={handleSearch} className="relative">
-                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <button
-                  type="submit"
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-primary hover:text-primary-dark transition-colors"
-                >
-                  <Search className="w-5 h-5" />
-                </button>
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث عن المنتجات..."
-                  className="w-full pr-12 pl-12 py-3 bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all"
+                  className="w-full pr-12 pl-12 py-3.5 bg-muted rounded-xl border-2 border-transparent focus:border-primary focus:bg-white outline-none transition-all text-base"
                   autoFocus
                 />
+                <button
+                  type="submit"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors"
+                >
+                  بحث
+                </button>
               </form>
             </motion.div>
           )}
@@ -356,6 +398,20 @@ const Header = () => {
               transition={{ duration: 0.3 }}
               className="lg:hidden overflow-hidden mt-4 border-t border-border pt-4"
             >
+              {/* Search on Mobile */}
+              <div className="sm:hidden mb-4">
+                <form onSubmit={handleSearch} className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="ابحث عن المنتجات..."
+                    className="w-full pr-11 pl-3 py-3 bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all"
+                  />
+                </form>
+              </div>
+
               {/* Nav Links */}
               <div className="space-y-1 mb-4">
                 {navLinks.map((link) => (
@@ -363,7 +419,7 @@ const Header = () => {
                     key={link.to}
                     to={link.to}
                     onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center px-4 py-3 rounded-xl font-semibold transition-all ${
+                    className={`flex items-center px-4 py-3.5 rounded-xl font-semibold transition-all ${
                       isActive(link.to)
                         ? 'bg-primary/10 text-primary'
                         : 'hover:bg-muted'
@@ -377,19 +433,47 @@ const Header = () => {
               {/* User Section */}
               {user ? (
                 <div className="space-y-1 border-t border-border pt-4">
-                  <div className="px-4 py-2 text-sm text-muted-foreground">
-                    {user.email}
-                    {isAdmin && <span className="text-primary font-semibold mr-2">• مسؤول</span>}
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 px-4 py-3 mb-2">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={user?.user_metadata?.avatar_url} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {user?.user_metadata?.full_name || 'مستخدم'}
+                      </p>
+                      <p className="text-sm text-muted-foreground truncate" dir="ltr">
+                        {user.email}
+                      </p>
+                      {isAdmin && (
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">
+                          مسؤول
+                        </span>
+                      )}
+                    </div>
                   </div>
+
+                  {/* Profile Link */}
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
+                  >
+                    <User className="w-5 h-5 text-muted-foreground" />
+                    حسابي الشخصي
+                  </Link>
                   
                   {/* For Regular Users */}
                   {!isAdmin && (
                     <Link
                       to="/my-orders"
                       onClick={() => setIsMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
                     >
-                      <Package className="w-5 h-5" />
+                      <Package className="w-5 h-5 text-muted-foreground" />
                       طلباتي
                     </Link>
                   )}
@@ -397,20 +481,23 @@ const Header = () => {
                   {/* For Admins */}
                   {isAdmin && (
                     <>
+                      <div className="px-4 py-2 text-xs text-muted-foreground font-semibold">
+                        لوحة التحكم
+                      </div>
                       <Link
                         to="/admin"
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
                       >
-                        <Settings className="w-5 h-5" />
-                        لوحة التحكم
+                        <Settings className="w-5 h-5 text-muted-foreground" />
+                        الإحصائيات
                       </Link>
                       <Link
                         to="/admin/orders"
                         onClick={() => setIsMenuOpen(false)}
-                        className="flex items-center gap-2 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl font-semibold hover:bg-muted transition-colors"
                       >
-                        <Package className="w-5 h-5" />
+                        <Package className="w-5 h-5 text-muted-foreground" />
                         إدارة الطلبات
                       </Link>
                     </>
@@ -421,7 +508,7 @@ const Header = () => {
                       await handleSignOut();
                       setIsMenuOpen(false);
                     }}
-                    className="flex items-center gap-2 w-full px-4 py-3 rounded-xl font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+                    className="flex items-center gap-3 w-full px-4 py-3 rounded-xl font-semibold text-destructive hover:bg-destructive/10 transition-colors mt-2"
                   >
                     <LogOut className="w-5 h-5" />
                     تسجيل الخروج
@@ -431,7 +518,7 @@ const Header = () => {
                 <Link
                   to="/auth"
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 bg-primary text-primary-foreground rounded-xl font-semibold justify-center"
+                  className="flex items-center gap-3 px-4 py-3.5 bg-gradient-to-r from-primary to-primary-dark text-white rounded-xl font-semibold justify-center shadow-md"
                 >
                   <LogIn className="w-5 h-5" />
                   تسجيل الدخول
