@@ -337,13 +337,56 @@ export type Database = {
           },
         ]
       }
+      order_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          order_id: string
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          order_id: string
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          order_id?: string
+          source?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
+          checkout_session_id: string
           created_at: string
           customer_address: string
           customer_city: string
           customer_name: string
           customer_phone: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deleted_by_role: string | null
+          deleted_reason: string | null
           delivery_fee: number
           id: string
           notes: string | null
@@ -353,13 +396,22 @@ export type Database = {
           total: number
           updated_at: string
           user_id: string | null
+          whatsapp_abandoned_at: string | null
+          whatsapp_last_event: string | null
+          whatsapp_last_event_at: string | null
+          whatsapp_started_at: string | null
         }
         Insert: {
+          checkout_session_id?: string
           created_at?: string
           customer_address: string
           customer_city: string
           customer_name: string
           customer_phone: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_role?: string | null
+          deleted_reason?: string | null
           delivery_fee?: number
           id?: string
           notes?: string | null
@@ -369,13 +421,22 @@ export type Database = {
           total: number
           updated_at?: string
           user_id?: string | null
+          whatsapp_abandoned_at?: string | null
+          whatsapp_last_event?: string | null
+          whatsapp_last_event_at?: string | null
+          whatsapp_started_at?: string | null
         }
         Update: {
+          checkout_session_id?: string
           created_at?: string
           customer_address?: string
           customer_city?: string
           customer_name?: string
           customer_phone?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_by_role?: string | null
+          deleted_reason?: string | null
           delivery_fee?: number
           id?: string
           notes?: string | null
@@ -385,6 +446,10 @@ export type Database = {
           total?: number
           updated_at?: string
           user_id?: string | null
+          whatsapp_abandoned_at?: string | null
+          whatsapp_last_event?: string | null
+          whatsapp_last_event_at?: string | null
+          whatsapp_started_at?: string | null
         }
         Relationships: []
       }

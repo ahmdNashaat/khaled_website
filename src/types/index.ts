@@ -251,3 +251,49 @@ export interface Notification {
     [key: string]: any;
   } | null;
 }
+
+// --- WhatsApp Tracking + Analytics Types ---
+export type WhatsAppEventType =
+  | 'whatsapp_button_clicked'
+  | 'whatsapp_window_opened'
+  | 'user_returned_from_whatsapp'
+  | 'message_likely_sent'
+  | 'whatsapp_abandoned';
+
+export interface OrderEvent {
+  id: string;
+  order_id: string;
+  user_id: string | null;
+  event_type: WhatsAppEventType | string;
+  source: 'web' | 'admin' | 'system' | string;
+  metadata: Record<string, any>;
+  created_at: string;
+}
+
+export interface OrdersAnalyticsSummary {
+  totalOrders: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  completedOrders: number;
+  cancelledOrders: number;
+}
+
+export interface OrdersFunnelMetrics {
+  cartCheckoutStarted: number;
+  whatsappOpened: number;
+  whatsappLikelySent: number;
+  confirmedOrders: number;
+  conversionRate: number;
+  whatsappAbandonRate: number;
+}
+
+export interface ApiResponse<T> {
+  data: T | null;
+  error: string | null;
+}
+
+export interface AppError {
+  code: string;
+  message: string;
+  details?: Record<string, any>;
+}

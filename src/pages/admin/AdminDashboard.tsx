@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Package, FolderTree, ShoppingCart, Tag, TrendingUp, Clock, ArrowRight } from 'lucide-react';
 import { formatOrderNumber } from '@/utils/orderNumber';
+import { OrdersAnalytics } from '@/components/admin/OrdersAnalytics';
 
 interface DashboardStats {
   productsCount: number;
@@ -36,10 +37,10 @@ const AdminDashboard = () => {
           supabase.from('products').select('id', { count: 'exact', head: true }),
           supabase.from('categories').select('id', { count: 'exact', head: true }),
           // كل الطلبات شامل cancelled — عدد فقط
-          supabase.from('orders').select('id', { count: 'exact', head: true }),
+          supabase.from('orders').select('id', { count: 'exact', head: true }).is('deleted_at', null),
           // المبيعات فعلية — بدون cancelled
-          supabase.from('orders').select('id, total').neq('status', 'cancelled'),
-          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+          supabase.from('orders').select('id, total').neq('status', 'cancelled').is('deleted_at', null),
+          supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'pending').is('deleted_at', null),
           supabase.from('offers').select('id', { count: 'exact', head: true }).eq('is_active', true),
         ]);
 
@@ -57,6 +58,7 @@ const AdminDashboard = () => {
         const { data: recent } = await supabase
           .from('orders')
           .select('*')
+          .is('deleted_at', null)
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -133,6 +135,8 @@ const AdminDashboard = () => {
             </motion.div>
           ))}
         </div>
+
+        <OrdersAnalytics />
 
         {/* Recent Orders */}
         

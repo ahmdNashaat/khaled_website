@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AddressBook from '@/components/AddressBook';
 import { z } from 'zod';
+import { useWhatsAppTracking } from '@/hooks/useWhatsAppTracking';
 
 const checkoutSchema = z.object({
   customerName: z.string().min(2, 'الاسم الكامل مطلوب').max(100),
@@ -63,6 +64,7 @@ const CartPage = () => {
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(true);
   const { offers, isLoading: isLoadingOffers } = useOffers();
+  const { startTracking } = useWhatsAppTracking();
 
   useEffect(() => {
     const fetchDeliveryAreas = async () => {
@@ -315,14 +317,17 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
         userId: user?.id ?? null,
       });
 
-      // 3. فتح واتساب بعد الحفظ الناجح فقط
+      // 3. Track WhatsApp funnel events (best-effort)
+      void startTracking(supabaseOrderId, user?.id ?? null);
+
+      // 4. فتح واتساب بعد الحفظ الناجح فقط
       const message = formatOrderMessage(orderNumber);
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
 
-      // 4. تفريغ السلة
+      // 5. تفريغ السلة
       clearCart();
 
-      // 5. navigate للـ confirmation
+      // 6. navigate للـ confirmation
       navigate(`/orders/${localOrder.id}`);
 
     } catch (error) {

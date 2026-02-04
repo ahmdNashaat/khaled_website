@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import AdminLayout from '@/components/admin/AdminLayout';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ import { ar } from 'date-fns/locale';
 import { formatOrderNumber } from '@/utils/orderNumber';
 import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
 import { AdminOrder, AdminOrderStatus } from '@/types';
+import { softDeleteOrder } from '@/services/orderService';
 
 const statusOptions: { value: AdminOrderStatus; label: string; className: string }[] = [
   { value: 'pending', label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
@@ -39,7 +40,7 @@ const statusOptions: { value: AdminOrderStatus; label: string; className: string
 ];
 
 const AdminOrders = () => {
-  const { isAdmin, isLoading: isAuthLoading } = useAuth();
+  const { isAdmin, isLoading: isAuthLoading, user } = useAuth();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -47,7 +48,7 @@ const AdminOrders = () => {
   const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // حذف — confirmation dialog
+  // أرشفة — confirmation dialog
   const [orderToDelete, setOrderToDelete] = useState<AdminOrder | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -57,6 +58,7 @@ const AdminOrders = () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*, order_items(*)')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -99,53 +101,25 @@ const AdminOrders = () => {
     }
   };
 
-  // فتح dialog التأكيد فقط — الحذف الفعلي في confirmDelete
+  // فتح dialog التأكيد فقط — الأرشفة الفعلية في confirmDelete
   const requestDelete = (order: AdminOrder) => {
     setOrderToDelete(order);
     setDeleteDialogOpen(true);
   };
 
-  // الحذف الفعلي بعد تأكيد الأدمن
+  // الأرشفة الفعلية بعد تأكيد الأدمن
   const confirmDelete = async () => {
     if (!orderToDelete) return;
     setIsDeleting(true);
     try {
-      console.log('Starting delete for order:', orderToDelete.id);
+      await softDeleteOrder({
+        orderId: orderToDelete.id,
+        userId: user?.id ?? null,
+        role: 'admin',
+        reason: 'admin_deleted',
+      });
 
-      const { data: deletedItems, error: itemsErr, count: itemsCount } = await supabase
-        .from('order_items')
-        .delete()
-        .eq('order_id', orderToDelete.id)
-        .select();
-
-      console.log('Items delete result:', { deletedItems, itemsCount, itemsErr });
-
-      if (itemsErr) {
-        console.error('Items delete error:', itemsErr);
-        throw new Error(`Failed to delete order items: ${itemsErr.message}`);
-      }
-
-      const { data: deletedOrder, error: orderErr, count: orderCount } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderToDelete.id)
-        .select();
-
-      console.log('Order delete result:', { deletedOrder, orderCount, orderErr });
-
-      if (orderErr) {
-        console.error('Order delete error:', orderErr);
-        throw new Error(`Failed to delete order: ${orderErr.message}`);
-      }
-
-      if (orderCount === 0) {
-        console.error('RLS Policy Issue: Delete returned 0 rows');
-        toast.error('الحذف مرفوض بسبب صلاحيات RLS، تحقق من صلاحيات الأدمن في Supabase');
-        return;
-      }
-
-      console.log('Order deleted successfully');
-      toast.success('تم حذف الطلب بنجاح');
+      toast.success('تم أرشفة الطلب بنجاح');
       setDeleteDialogOpen(false);
       setDialogOpen(false);
       setOrderToDelete(null);
@@ -153,7 +127,7 @@ const AdminOrders = () => {
       fetchOrders();
     } catch (error: any) {
       console.error('Delete operation failed:', error);
-      toast.error(error.message || 'حدث خطأ أثناء حذف الطلب');
+      toast.error(error.message || 'حدث خطأ أثناء أرشفة الطلب');
     } finally {
       setIsDeleting(false);
     }
@@ -328,22 +302,22 @@ const AdminOrders = () => {
           onRequestDelete={requestDelete}
         />
 
-        {/* حذف — dialog التأكيد */}
+        {/* أرشفة — dialog التأكيد */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
-                تأكيد الحذف
+                تأكيد الأرشفة
               </DialogTitle>
               <DialogDescription>
-                هذا الإجراء لا يمكن التراجع عنه
+                هذا الإجراء لا يمكن التراجع عنه من واجهة المستخدم
               </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-3">
               <p className="text-muted-foreground">
-                هل أنت متأكد أنك تريد حذف الطلب؟ سيتم حذف جميع بيانات الطلب والمنتجات المرتبطة به نهائياً.
+                هل أنت متأكد أنك تريد أرشفة الطلب؟ سيظل محفوظاً لأغراض التقارير والتحليلات.
               </p>
               {orderToDelete && (
                 <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-1.5">
@@ -372,7 +346,7 @@ const AdminOrders = () => {
                 disabled={isDeleting}
                 className="flex-1"
               >
-                {isDeleting ? 'جاري الحذف...' : 'حذف نهائياً'}
+                {isDeleting ? 'جاري الأرشفة...' : 'أرشفة الطلب'}
               </Button>
               <Button
                 variant="outline"
@@ -391,3 +365,4 @@ const AdminOrders = () => {
 };
 
 export default AdminOrders;
+

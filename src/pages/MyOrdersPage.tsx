@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useAuth } from '@/hooks/useAuth';
 import { formatOrderNumber } from '@/utils/orderNumber';
+import { softDeleteOrder } from '@/services/orderService';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
@@ -200,7 +201,7 @@ const MyOrdersPage = () => {
       // ⬅️ جلب طلبات المستخدم الحالي فقط من Supabase
       const { data, error } = await supabase
         .from('orders')
-        .select('id, status, created_at, order_number')
+        .select('id, status, created_at, order_number, deleted_at')
         .eq('user_id', user.id) // ⬅️ هنا الحل الأساسي!
         .order('created_at', { ascending: false });
 
@@ -277,24 +278,14 @@ const MyOrdersPage = () => {
           filter: `id=in.(${localIds.join(',')})`,
         },
         (payload) => {
-          const row = payload.new as { id: string; status: string };
+          const row = payload.new as { id: string; status: string; deleted_at?: string | null };
+          if (row.deleted_at) {
+            removeOrder(row.id);
+            toast.warning('تم إخفاء أحد طلباتك');
+            return;
+          }
           updateOrderStatus(row.id, row.status);
           toast.info('تم تحديث حالة طلب');
-        }
-      )
-      // الأدمن حذف الطلب
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=in.(${localIds.join(',')})`,
-        },
-        (payload) => {
-          const row = payload.old as { id: string };
-          removeOrder(row.id);
-          toast.warning('حذف أحد طلباتك من قِبل الإدارة');
         }
       )
       .subscribe();
@@ -324,29 +315,15 @@ const MyOrdersPage = () => {
     if (!orderToDelete || !orderToDelete.supabaseOrderId || !user) return;
     setIsDeleting(true);
     try {
-      const { error: itemsErr } = await supabase
-        .from('order_items')
-        .delete()
-        .eq('order_id', orderToDelete.supabaseOrderId);
-
-      if (itemsErr) throw itemsErr;
-
-      const { data: deletedOrder, error: orderErr } = await supabase
-        .from('orders')
-        .delete()
-        .eq('id', orderToDelete.supabaseOrderId)
-        .eq('user_id', user.id)
-        .select('id');
-
-      if (orderErr) throw orderErr;
-
-      if (!deletedOrder || deletedOrder.length === 0) {
-        toast.error('تم منع الحذف — تحقق من صلاحيات RLS');
-        return;
-      }
+      await softDeleteOrder({
+        orderId: orderToDelete.supabaseOrderId,
+        userId: user.id,
+        role: 'customer',
+        reason: 'customer_deleted',
+      });
 
       removeOrder(orderToDelete.supabaseOrderId);
-      toast.success('تم حذف الطلب نهائياً');
+      toast.success('تم إخفاء الطلب من حسابك');
       setDeleteDialogOpen(false);
       setOrderToDelete(null);
     } catch (error: any) {
@@ -569,13 +546,13 @@ const handleCancelOrder = async (order: Order) => {
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
-                تأكيد الحذف
+                تأكيد الإخفاء
               </DialogTitle>
             </DialogHeader>
 
             <div className="py-4">
               <p className="text-muted-foreground mb-4">
-                هل أنت متأكد من حذف هذا الطلب نهائياً؟ لن تتمكن من استرجاعه.
+                هل أنت متأكد من إخفاء هذا الطلب من حسابك؟ سيظل محفوظاً لدى الإدارة لأغراض المتابعة.
               </p>
 
               {orderToDelete && (
@@ -601,7 +578,7 @@ const handleCancelOrder = async (order: Order) => {
                 disabled={isDeleting}
                 className="flex-1"
               >
-                {isDeleting ? 'جاري الحذف...' : 'حذف نهائياً'}
+                {isDeleting ? 'جاري الإخفاء...' : 'إخفاء الطلب'}
               </Button>
               <Button
                 variant="outline"
