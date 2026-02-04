@@ -1,15 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Mail, Phone, MapPin, ShoppingBag, Heart, Settings, LogOut, Edit } from 'lucide-react';
+import { Mail, MapPin, ShoppingBag, Heart, Settings, LogOut, Save } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrdersStore } from '@/store/ordersStore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, UserProfile } from '@/types';
 import { formatOrderNumber } from '@/utils/orderNumber';
+import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
+import AddressBook from '@/components/AddressBook';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
@@ -19,49 +24,160 @@ const formatDate = (iso: string) =>
   });
 
 const statusConfig: Record<OrderStatus, { label: string; bg: string; text: string }> = {
-  pending: { label: 'انتظار التأكيد', bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  confirmed: { label: 'تأكّد', bg: 'bg-blue-100', text: 'text-blue-700' },
-  preparing: { label: 'يُعدّ', bg: 'bg-purple-100', text: 'text-purple-700' },
-  out_for_delivery: { label: 'في الطريق', bg: 'bg-orange-100', text: 'text-orange-700' },
-  delivered: { label: 'تم التوصيل', bg: 'bg-green-100', text: 'text-green-700' },
+  pending: { label: '?????? ???????', bg: 'bg-yellow-100', text: 'text-yellow-700' },
+  confirmed: { label: '?????', bg: 'bg-blue-100', text: 'text-blue-700' },
+  preparing: { label: '?????', bg: 'bg-purple-100', text: 'text-purple-700' },
+  out_for_delivery: { label: '?? ??????', bg: 'bg-orange-100', text: 'text-orange-700' },
+  delivered: { label: '?? ???????', bg: 'bg-green-100', text: 'text-green-700' },
+  cancelled: { label: '????', bg: 'bg-red-100', text: 'text-red-700' },
 };
+
+const profileSchema = z.object({
+  full_name: z.string().min(2, '????? ?????? ?????').max(100),
+  phone: z
+    .string()
+    .min(8, '??? ?????? ??? ????')
+    .max(20)
+    .optional()
+    .or(z.literal('')),
+});
+
+type ProfileForm = z.infer<typeof profileSchema>;
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
   const getUserOrders = useOrdersStore((state) => state.getUserOrders);
   const orders = user ? getUserOrders(user.id) : [];
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileForm>({ full_name: '', phone: '' });
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // عرض آخر 5 طلبات فقط
     setRecentOrders(orders.slice(0, 5));
   }, [orders]);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) return;
+      setIsProfileLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone, avatar_url, created_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!data) {
+          const { data: created, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              user_id: user.id,
+              full_name: user.user_metadata?.full_name || null,
+              phone: user.user_metadata?.phone || null,
+            })
+            .select('user_id, full_name, phone, avatar_url, created_at')
+            .single();
+
+          if (createError) throw createError;
+          setProfile(created as UserProfile);
+          setProfileForm({
+            full_name: created?.full_name || user.user_metadata?.full_name || '',
+            phone: created?.phone || user.user_metadata?.phone || '',
+          });
+        } else {
+          setProfile(data as UserProfile);
+          setProfileForm({
+            full_name: data.full_name || user.user_metadata?.full_name || '',
+            phone: data.phone || user.user_metadata?.phone || '',
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast.error('??? ??? ????? ????? ????????');
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
 
   const handleSignOut = async () => {
     try {
       await signOut();
-      toast.success('تم تسجيل الخروج بنجاح');
+      toast.success('?? ????? ?????? ?????');
     } catch (error) {
-      toast.error('حدث خطأ أثناء تسجيل الخروج');
+      toast.error('??? ??? ????? ????? ??????');
+    }
+  };
+
+  const handleProfileSave = async () => {
+    if (!user) return;
+
+    const parsed = profileSchema.safeParse(profileForm);
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || '???? ?????? ?? ????????');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: parsed.data.full_name,
+          phone: parsed.data.phone || null,
+        })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      await supabase.auth.updateUser({
+        data: {
+          full_name: parsed.data.full_name,
+          phone: parsed.data.phone || null,
+        },
+      });
+
+      setProfile((prev) =>
+        prev
+          ? { ...prev, full_name: parsed.data.full_name, phone: parsed.data.phone || null }
+          : {
+              user_id: user.id,
+              full_name: parsed.data.full_name,
+              phone: parsed.data.phone || null,
+            }
+      );
+
+      toast.success('?? ????? ????? ??????');
+    } catch (error: any) {
+      console.error('Error saving profile:', error);
+      toast.error(error?.message || '??? ??? ????? ??? ????????');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   const stats = [
     {
       icon: <ShoppingBag className="w-6 h-6" />,
-      label: 'إجمالي الطلبات',
+      label: '?????? ???????',
       value: orders.length,
       color: 'text-primary bg-primary/10',
     },
     {
       icon: <ShoppingBag className="w-6 h-6" />,
-      label: 'الطلبات النشطة',
+      label: '??????? ??????',
       value: orders.filter(o => !['delivered', 'cancelled'].includes(o.status)).length,
       color: 'text-blue-600 bg-blue-100',
     },
     {
       icon: <ShoppingBag className="w-6 h-6" />,
-      label: 'الطلبات المكتملة',
+      label: '??????? ????????',
       value: orders.filter(o => o.status === 'delivered').length,
       color: 'text-green-600 bg-green-100',
     },
@@ -70,64 +186,52 @@ const ProfilePage = () => {
   return (
     <Layout>
       <div className="section-container py-8">
-        {/* Breadcrumb */}
         <nav className="text-sm text-muted-foreground mb-6">
-          <Link to="/" className="hover:text-primary">الرئيسية</Link>
+          <Link to="/" className="hover:text-primary">????????</Link>
           <span className="mx-2">/</span>
-          <span className="text-primary">حسابي</span>
+          <span className="text-primary">?????</span>
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Profile Card */}
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center space-y-4">
-                  {/* Avatar */}
                   <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-3xl font-bold">
-                    {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    {(profile?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                   </div>
 
-                  {/* User Info */}
                   <div>
                     <h2 className="text-xl font-bold text-foreground">
-                      {user?.user_metadata?.full_name || 'مستخدم'}
+                      {profile?.full_name || user?.user_metadata?.full_name || '??????'}
                     </h2>
                     <p className="text-sm text-muted-foreground flex items-center justify-center gap-2 mt-1">
                       <Mail className="w-4 h-4" />
                       {user?.email}
                     </p>
                   </div>
-
-                  {/* Edit Profile Button */}
-                  <Button variant="outline" className="w-full" disabled>
-                    <Edit className="w-4 h-4 mr-2" />
-                    تعديل الملف الشخصي
-                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Quick Links */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">القائمة</CardTitle>
+                <CardTitle className="text-base">???????</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <Link to="/my-orders">
                   <Button variant="ghost" className="w-full justify-start">
                     <ShoppingBag className="w-4 h-4 mr-2" />
-                    طلباتي
+                    ??????
                   </Button>
                 </Link>
                 <Button variant="ghost" className="w-full justify-start" disabled>
                   <Heart className="w-4 h-4 mr-2" />
-                  المفضلة
+                  ???????
                 </Button>
                 <Button variant="ghost" className="w-full justify-start" disabled>
                   <Settings className="w-4 h-4 mr-2" />
-                  الإعدادات
+                  ?????????
                 </Button>
                 <Button
                   variant="ghost"
@@ -135,15 +239,13 @@ const ProfilePage = () => {
                   onClick={handleSignOut}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
-                  تسجيل الخروج
+                  ????? ??????
                 </Button>
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {stats.map((stat, index) => (
                 <motion.div
@@ -169,13 +271,12 @@ const ProfilePage = () => {
               ))}
             </div>
 
-            {/* Recent Orders */}
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>آخر الطلبات</CardTitle>
+                <CardTitle>??? ???????</CardTitle>
                 {orders.length > 5 && (
                   <Link to="/my-orders" className="text-sm text-primary hover:underline">
-                    عرض الكل
+                    ??? ????
                   </Link>
                 )}
               </CardHeader>
@@ -185,9 +286,9 @@ const ProfilePage = () => {
                     <div className="w-16 h-16 mx-auto mb-4 bg-muted rounded-full flex items-center justify-center">
                       <ShoppingBag className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    <p className="text-muted-foreground mb-4">لا توجد طلبات بعد</p>
+                    <p className="text-muted-foreground mb-4">?? ???? ????? ???</p>
                     <Link to="/products">
-                      <Button>تصفح المنتجات</Button>
+                      <Button>???? ????????</Button>
                     </Link>
                   </div>
                 ) : (
@@ -202,7 +303,7 @@ const ProfilePage = () => {
                         >
                           <div className="flex items-center justify-between mb-3">
                             <div>
-                              <p className="text-sm text-muted-foreground">رقم الطلب</p>
+                              <p className="text-sm text-muted-foreground">??? ?????</p>
                               <p className="font-bold text-primary">
                                 #{formatOrderNumber(order.orderNumber || order.supabaseOrderId || order.id)}
                               </p>
@@ -217,7 +318,7 @@ const ProfilePage = () => {
                               {formatDate(order.createdAt)}
                             </span>
                             <span className="font-bold text-foreground">
-                              {order.total.toFixed(2)} جنيه
+                              {order.total.toFixed(2)} ????
                             </span>
                           </div>
 
@@ -244,32 +345,84 @@ const ProfilePage = () => {
               </CardContent>
             </Card>
 
-            {/* Account Info */}
             <Card>
               <CardHeader>
-                <CardTitle>معلومات الحساب</CardTitle>
+                <CardTitle>??????? ??????</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isProfileLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map((idx) => (
+                      <div key={idx} className="h-10 bg-muted animate-pulse rounded-lg" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">????? ??????</p>
+                      <p className="font-medium">{profile?.full_name || '??? ????'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">?????? ??????????</p>
+                      <p className="font-medium">{user?.email}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">??? ??????</p>
+                      <p className="font-medium" dir="ltr">
+                        {profile?.phone || '??? ????'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">????? ???????</p>
+                      <p className="font-medium">
+                        {user?.created_at ? formatDate(user.created_at) : '??? ????'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>????? ????? ??????</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">الاسم الكامل</p>
-                    <p className="font-medium">{user?.user_metadata?.full_name || 'غير محدد'}</p>
+                  <div className="space-y-2">
+                    <Label>????? ??????</Label>
+                    <Input
+                      value={profileForm.full_name}
+                      onChange={(e) => setProfileForm({ ...profileForm, full_name: e.target.value })}
+                      placeholder="???? ????"
+                    />
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">البريد الإلكتروني</p>
-                    <p className="font-medium">{user?.email}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">رقم الهاتف</p>
-                    <p className="font-medium">{user?.user_metadata?.phone || 'غير محدد'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">تاريخ التسجيل</p>
-                    <p className="font-medium">
-                      {user?.created_at ? formatDate(user.created_at) : 'غير متاح'}
-                    </p>
+                  <div className="space-y-2">
+                    <Label>??? ??????</Label>
+                    <Input
+                      value={profileForm.phone || ''}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                      placeholder="????: 01000000000"
+                      dir="ltr"
+                    />
                   </div>
                 </div>
+                <Button onClick={handleProfileSave} disabled={isSaving} className="gap-2">
+                  <Save className="w-4 h-4" />
+                  {isSaving ? '???? ?????...' : '??? ?????????'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5 text-primary" />
+                  ?????? ???????
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AddressBook userId={user?.id} />
               </CardContent>
             </Card>
           </div>

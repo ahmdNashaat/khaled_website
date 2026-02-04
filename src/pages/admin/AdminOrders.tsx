@@ -22,39 +22,14 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Search, ShoppingCart, Eye, Phone, MapPin, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, ShoppingCart, Eye, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { formatOrderNumber } from '@/utils/orderNumber';
+import OrderDetailsDialog from '@/components/admin/OrderDetailsDialog';
+import { AdminOrder, AdminOrderStatus } from '@/types';
 
-type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-
-interface OrderItem {
-  id: string;
-  product_name: string;
-  size_label: string | null;
-  quantity: number;
-  unit_price: number;
-  total_price: number;
-}
-
-interface Order {
-  id: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_address: string;
-  customer_city: string;
-  status: OrderStatus;
-  subtotal: number;
-  delivery_fee: number;
-  total: number;
-  notes: string | null;
-  created_at: string;
-  order_number: string | null;
-  order_items?: OrderItem[];
-}
-
-const statusOptions: { value: OrderStatus; label: string; className: string }[] = [
+const statusOptions: { value: AdminOrderStatus; label: string; className: string }[] = [
   { value: 'pending', label: 'معلق', className: 'bg-yellow-100 text-yellow-800' },
   { value: 'confirmed', label: 'مؤكد', className: 'bg-blue-100 text-blue-800' },
   { value: 'processing', label: 'قيد التجهيز', className: 'bg-purple-100 text-purple-800' },
@@ -65,15 +40,15 @@ const statusOptions: { value: OrderStatus; label: string; className: string }[] 
 
 const AdminOrders = () => {
   const { isAdmin, isLoading: isAuthLoading } = useAuth();
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<AdminOrder | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // حذف — confirmation dialog
-  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [orderToDelete, setOrderToDelete] = useState<AdminOrder | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -104,7 +79,7 @@ useEffect(() => {
     fetchOrders();
   }, []);
 
-  const handleStatusChange = async (orderId: string, newStatus: OrderStatus) => {
+  const handleStatusChange = async (orderId: string, newStatus: AdminOrderStatus) => {
     try {
       const { error } = await supabase
         .from('orders')
@@ -126,7 +101,7 @@ useEffect(() => {
 
   /* ─── delete ─────────────────────────────────────── */
   // فتح dialog التأكيد فقط — الحذف الفعلي في confirmDelete
-  const requestDelete = (order: Order) => {
+  const requestDelete = (order: AdminOrder) => {
     setOrderToDelete(order);
     setDeleteDialogOpen(true);
   };
@@ -185,12 +160,12 @@ useEffect(() => {
     }
   };
 
-  const openOrderDetails = (order: Order) => {
+  const openOrderDetails = (order: AdminOrder) => {
     setSelectedOrder(order);
     setDialogOpen(true);
   };
 
-  const getStatusBadge = (status: OrderStatus) => {
+  const getStatusBadge = (status: AdminOrderStatus) => {
     const statusInfo = statusOptions.find((s) => s.value === status);
     return statusInfo || { label: status, className: 'bg-gray-100 text-gray-800' };
   };
@@ -286,7 +261,9 @@ useEffect(() => {
                           <td className="py-3 px-2">
                             <div>
                               <p className="font-medium">{order.customer_name}</p>
-                              <p className="text-sm text-muted-foreground">{order.customer_phone}</p>
+                              <p className="text-sm text-muted-foreground" dir="ltr">
+                                {order.customer_phone}
+                              </p>
                             </div>
                           </td>
                           <td className="py-3 px-2 text-muted-foreground">
@@ -298,7 +275,7 @@ useEffect(() => {
                           <td className="py-3 px-2">
                             <Select
                               value={order.status}
-                              onValueChange={(value) => handleStatusChange(order.id, value as OrderStatus)}
+                              onValueChange={(value) => handleStatusChange(order.id, value as AdminOrderStatus)}
                             >
                               <SelectTrigger className={`w-32 h-8 text-xs ${status.className}`}>
                                 <SelectValue />
@@ -344,125 +321,13 @@ useEffect(() => {
           </CardContent>
         </Card>
 
-        {/* Order Details Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>تفاصيل الطلب #{selectedOrder ? formatOrderNumber(selectedOrder.order_number || selectedOrder.id) : ""}</DialogTitle>
-            </DialogHeader>
-            {selectedOrder && (
-              <div className="space-y-6">
-                {/* Customer Info */}
-                <div className="bg-muted/50 p-4 rounded-lg space-y-2">
-                  <h4 className="font-semibold mb-3">معلومات العميل</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-muted-foreground">الاسم:</span>
-                      <span className="font-medium">{selectedOrder.customer_name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <a href={`tel:${selectedOrder.customer_phone}`} className="text-primary">
-                        {selectedOrder.customer_phone}
-                      </a>
-                    </div>
-                    <div className="flex items-start gap-2 sm:col-span-2">
-                      <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
-                      <span>{selectedOrder.customer_address}، {selectedOrder.customer_city}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Order Items */}
-                <div>
-                  <h4 className="font-semibold mb-3">المنتجات</h4>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="w-full">
-                      <thead className="bg-muted/50">
-                        <tr>
-                          <th className="text-right py-2 px-3 font-medium text-sm">المنتج</th>
-                          <th className="text-right py-2 px-3 font-medium text-sm">الحجم</th>
-                          <th className="text-right py-2 px-3 font-medium text-sm">الكمية</th>
-                          <th className="text-right py-2 px-3 font-medium text-sm">السعر</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedOrder.order_items?.map((item) => (
-                          <tr key={item.id} className="border-t">
-                            <td className="py-2 px-3">{item.product_name}</td>
-                            <td className="py-2 px-3 text-muted-foreground">{item.size_label || '-'}</td>
-                            <td className="py-2 px-3">{item.quantity}</td>
-                            <td className="py-2 px-3">{Number(item.total_price).toLocaleString('ar-EG')} ج.م</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Order Summary */}
-                <div className="bg-muted/50 p-4 rounded-lg">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">المجموع الفرعي:</span>
-                      <span>{Number(selectedOrder.subtotal).toLocaleString('ar-EG')} ج.م</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">رسوم التوصيل:</span>
-                      <span>{Number(selectedOrder.delivery_fee).toLocaleString('ar-EG')} ج.م</span>
-                    </div>
-                    <div className="flex justify-between border-t pt-2 font-bold">
-                      <span>الإجمالي:</span>
-                      <span className="text-primary">{Number(selectedOrder.total).toLocaleString('ar-EG')} ج.م</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Notes */}
-                {selectedOrder.notes && (
-                  <div>
-                    <h4 className="font-semibold mb-2">ملاحظات</h4>
-                    <p className="text-muted-foreground bg-muted/50 p-3 rounded-lg">
-                      {selectedOrder.notes}
-                    </p>
-                  </div>
-                )}
-
-                {/* الحالة + حذف */}
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <div className="flex items-center gap-3">
-                    <span className="font-medium">الحالة:</span>
-                    <Select
-                      value={selectedOrder.status}
-                      onValueChange={(value) => handleStatusChange(selectedOrder.id, value as OrderStatus)}
-                    >
-                      <SelectTrigger className="w-40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statusOptions.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>
-                            {s.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => requestDelete(selectedOrder)}
-                    className="flex items-center gap-1.5"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    حذف الطلب
-                  </Button>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+        <OrderDetailsDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          order={selectedOrder}
+          onStatusChange={handleStatusChange}
+          onRequestDelete={requestDelete}
+        />
 
         {/* ─── حذف — dialog التأكيد ────────────────────────── */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

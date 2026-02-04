@@ -13,6 +13,8 @@ export interface SaveOrderInput {
   appliedOffers: AppliedOffer[];
   customerName?: string;  // اسم العميل
   customerPhone?: string; // رقم الهاتف
+  customerAddress?: string;
+  customerCity?: string;
   userId?: string | null; // ⬅️ معرف المستخدم (null للـ guests)
 }
 
@@ -30,10 +32,36 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<{ orde
     total,
     customerName,
     customerPhone,
+    customerAddress,
+    customerCity,
     userId // ⬅️ نستقبل الـ userId
   } = input;
 
   const orderNumber = generateOrderNumber();
+
+  let resolvedName = customerName?.trim() || '';
+  let resolvedPhone = customerPhone?.trim() || '';
+
+  if (userId) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    resolvedName = resolvedName || profile?.full_name || '';
+    resolvedPhone = resolvedPhone || profile?.phone || '';
+
+    if ((resolvedName && resolvedName !== profile?.full_name) || (resolvedPhone && resolvedPhone !== profile?.phone)) {
+      await supabase
+        .from('profiles')
+        .update({
+          full_name: resolvedName || profile?.full_name || null,
+          phone: resolvedPhone || profile?.phone || null,
+        })
+        .eq('user_id', userId);
+    }
+  }
 
 
   // ─── 1. Insert the order row ─────────────────────────────────────────────
@@ -42,12 +70,10 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<{ orde
     .insert({
       order_number: orderNumber,
       user_id: userId || null, // ⬅️ نحفظ الـ user_id (null للـ guests)
-      customer_name: customerName || 'عميل جديد',
-      customer_phone: customerPhone || '',
-      customer_address: deliveryArea
-        ? `${deliveryArea.city} - ${deliveryArea.area}`
-        : '',
-      customer_city: deliveryArea?.city ?? '',
+      customer_name: resolvedName || 'عميل جديد',
+      customer_phone: resolvedPhone || '',
+      customer_address: customerAddress || (deliveryArea ? `${deliveryArea.city} - ${deliveryArea.area}` : ''),
+      customer_city: customerCity || (deliveryArea?.city ?? ''),
       status: 'pending',
       subtotal,
       delivery_fee: deliveryFee,

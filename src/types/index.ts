@@ -54,6 +54,29 @@ export interface DeliveryArea {
   isActive: boolean;
 }
 
+// User Profile & Address Types
+export interface UserProfile {
+  user_id: string;
+  full_name: string | null;
+  phone: string | null;
+  avatar_url?: string | null;
+  created_at?: string;
+}
+
+export interface UserAddress {
+  id: string;
+  user_id: string;
+  label: string;
+  city: string;
+  area: string;
+  street: string;
+  building: string | null;
+  floor: string | null;
+  apartment: string | null;
+  is_default: boolean;
+  created_at?: string;
+}
+
 // Advanced Offer Types
 export type OfferType =
   | 'percentage'
@@ -165,6 +188,41 @@ export interface Order {
     discount: number;
     message: string;
   }[];
+}
+
+// Admin Orders (Supabase)
+export type AdminOrderStatus =
+  | 'pending'
+  | 'confirmed'
+  | 'processing'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled';
+
+export interface AdminOrderItem {
+  id: string;
+  product_name: string;
+  size_label: string | null;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+}
+
+export interface AdminOrder {
+  id: string;
+  user_id: string | null;
+  customer_name: string;
+  customer_phone: string;
+  customer_address: string;
+  customer_city: string;
+  status: AdminOrderStatus;
+  subtotal: number;
+  delivery_fee: number;
+  total: number;
+  notes: string | null;
+  created_at: string;
+  order_number: string | null;
+  order_items?: AdminOrderItem[];
 }
 
 export type NotificationType =

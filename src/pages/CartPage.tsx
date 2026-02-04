@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Trash2, Plus, Minus, ArrowRight, ShoppingBag, MessageCircle,
-  Gift, Sparkles, Tag, Loader2
+  Gift, Sparkles, Tag, Loader2, User, Phone, MapPin
 } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useCartStore } from '@/store/cartStore';
@@ -14,8 +14,29 @@ import { useOffers } from '@/hooks/useOffers';
 import { calculateCart } from '@/utils/offerCalculator';
 import { saveOrderToSupabase } from '@/utils/saveOrder';
 import { formatOrderNumber } from '@/utils/orderNumber';
-import { DeliveryArea } from '@/types';
+import { DeliveryArea, UserAddress } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AddressBook from '@/components/AddressBook';
+import { z } from 'zod';
+
+const checkoutSchema = z.object({
+  customerName: z.string().min(2, 'الاسم الكامل مطلوب').max(100),
+  customerPhone: z.string().min(8, 'رقم الهاتف غير صالح').max(20),
+  city: z.string().min(2, 'المدينة مطلوبة').max(100),
+  area: z.string().min(2, 'المنطقة مطلوبة').max(100),
+  street: z.string().min(2, 'الشارع مطلوب').max(200),
+});
+
+type AddressForm = {
+  city: string;
+  area: string;
+  street: string;
+  building: string;
+  floor: string;
+  apartment: string;
+};
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
@@ -25,6 +46,19 @@ const CartPage = () => {
   const [selectedArea, setSelectedArea] = useState('');
   const [notes, setNotes] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [addresses, setAddresses] = useState<UserAddress[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [addressForm, setAddressForm] = useState<AddressForm>({
+    city: '',
+    area: '',
+    street: '',
+    building: '',
+    floor: '',
+    apartment: '',
+  });
 
   const [deliveryAreas, setDeliveryAreas] = useState<DeliveryArea[]>([]);
   const [isLoadingAreas, setIsLoadingAreas] = useState(true);
@@ -64,6 +98,90 @@ const CartPage = () => {
 
     fetchDeliveryAreas();
   }, []);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null);
+        setIsProfileLoading(false);
+        return;
+      }
+
+      setIsProfileLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('user_id, full_name, phone, avatar_url, created_at')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (data) {
+          setCustomerName((prev) => prev || data.full_name || '');
+          setCustomerPhone((prev) => prev || data.phone || '');
+        } else {
+          setCustomerName((prev) => prev || user.user_metadata?.full_name || '');
+          setCustomerPhone((prev) => prev || user.user_metadata?.phone || '');
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+      } finally {
+        setIsProfileLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user]);
+
+  const handleSelectAddress = (address: UserAddress | null) => {
+    if (!address) {
+      setSelectedAddressId(null);
+      return;
+    }
+
+    setSelectedAddressId(address.id);
+    setAddressForm({
+      city: address.city,
+      area: address.area,
+      street: address.street,
+      building: address.building || '',
+      floor: address.floor || '',
+      apartment: address.apartment || '',
+    });
+
+    const matchedArea = deliveryAreas.find(
+      (area) => area.city === address.city && area.area === address.area
+    );
+    if (matchedArea) {
+      setSelectedArea(matchedArea.id);
+    } else {
+      setSelectedArea('');
+      toast.error('منطقة التوصيل لهذا العنوان غير متاحة حالياً');
+    }
+  };
+
+  const handleAddressesChange = (nextAddresses: UserAddress[]) => {
+    setAddresses(nextAddresses);
+    if (!selectedAddressId) {
+      const preferred = nextAddresses.find((a) => a.is_default) || nextAddresses[0];
+      if (preferred) {
+        handleSelectAddress(preferred);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedAddressId) return;
+    const address = addresses.find((addr) => addr.id === selectedAddressId);
+    if (!address || deliveryAreas.length === 0) return;
+    const matchedArea = deliveryAreas.find(
+      (area) => area.city === address.city && area.area === address.area
+    );
+    if (matchedArea) {
+      setSelectedArea(matchedArea.id);
+    }
+  }, [selectedAddressId, deliveryAreas, addresses]);
 
   const deliveryArea = deliveryAreas.find((a) => a.id === selectedArea);
   const originalDeliveryFee = deliveryArea?.deliveryFee || 0;
@@ -126,6 +244,17 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
     return encodeURIComponent(message);
   };
 
+  const buildCustomerAddress = (address: AddressForm) => {
+    const parts = [
+      `${address.city} - ${address.area}`,
+      address.street,
+      address.building ? `عمارة ${address.building}` : null,
+      address.floor ? `الدور ${address.floor}` : null,
+      address.apartment ? `شقة ${address.apartment}` : null,
+    ];
+    return parts.filter(Boolean).join('، ');
+  };
+
   // ─── Checkout: save first, then open WhatsApp ────────────────────────────
   const handleCheckout = async () => {
     if (items.length === 0) {
@@ -136,10 +265,22 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
       toast.error('يرجى اختيار منطقة التوصيل');
       return;
     }
+    const parsed = checkoutSchema.safeParse({
+      customerName,
+      customerPhone,
+      city: addressForm.city,
+      area: addressForm.area,
+      street: addressForm.street,
+    });
+    if (!parsed.success) {
+      toast.error(parsed.error.errors[0]?.message || 'يرجى استكمال بيانات العميل');
+      return;
+    }
 
     setIsSending(true);
 
     try {
+      const customerAddress = buildCustomerAddress(addressForm);
       // 1. حفظ في Supabase – لو فشل نوقف هنا فعلاً
       const { orderId: supabaseOrderId, orderNumber } = await saveOrderToSupabase({
         items,
@@ -151,6 +292,10 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
         total: cartCalculation.total,
         appliedOffers: cartCalculation.appliedOffers,
         userId: user?.id ?? null,
+        customerName,
+        customerPhone,
+        customerAddress,
+        customerCity: addressForm.city,
       });
 
       // 2. حفظ محلياً في localStorage
@@ -378,6 +523,103 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                   ))}
                 </div>
               )}
+
+              <div className="py-4 border-b space-y-4">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                  <User className="w-4 h-4" />
+                  <span>بيانات العميل</span>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="space-y-2">
+                    <Label>الاسم الكامل</Label>
+                    <Input
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="أدخل اسمك"
+                      disabled={isProfileLoading}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>رقم الهاتف</Label>
+                    <Input
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="مثال: 01000000000"
+                      dir="ltr"
+                      disabled={isProfileLoading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="py-4 border-b space-y-4">
+                <div className="flex items-center gap-2 text-primary font-semibold">
+                  <MapPin className="w-4 h-4" />
+                  <span>عنوان التوصيل</span>
+                </div>
+
+                {user && (
+                  <AddressBook
+                    userId={user.id}
+                    mode="select"
+                    selectedAddressId={selectedAddressId}
+                    onSelect={handleSelectAddress}
+                    onAddressesChange={handleAddressesChange}
+                  />
+                )}
+
+                <div className="rounded-xl border p-4 space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    يمكنك تعديل العنوان هنا دون حفظه في دفتر العناوين.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>المدينة</Label>
+                      <Input
+                        value={addressForm.city}
+                        onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>المنطقة</Label>
+                      <Input
+                        value={addressForm.area}
+                        onChange={(e) => setAddressForm({ ...addressForm, area: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>الشارع</Label>
+                    <Input
+                      value={addressForm.street}
+                      onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="space-y-2">
+                      <Label>العمارة</Label>
+                      <Input
+                        value={addressForm.building}
+                        onChange={(e) => setAddressForm({ ...addressForm, building: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>الدور</Label>
+                      <Input
+                        value={addressForm.floor}
+                        onChange={(e) => setAddressForm({ ...addressForm, floor: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>الشقة</Label>
+                      <Input
+                        value={addressForm.apartment}
+                        onChange={(e) => setAddressForm({ ...addressForm, apartment: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="py-4 border-b">
                 <label className="block text-sm font-medium mb-2">منطقة التوصيل</label>
