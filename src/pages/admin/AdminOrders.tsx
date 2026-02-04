@@ -20,10 +20,12 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Search, ShoppingCart, Eye, Phone, MapPin, Trash2, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { formatOrderNumber } from '@/utils/orderNumber';
 
 type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
@@ -48,6 +50,7 @@ interface Order {
   total: number;
   notes: string | null;
   created_at: string;
+  order_number: string | null;
   order_items?: OrderItem[];
 }
 
@@ -61,6 +64,7 @@ const statusOptions: { value: OrderStatus; label: string; className: string }[] 
 ];
 
 const AdminOrders = () => {
+  const { isAdmin, isLoading: isAuthLoading } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,6 +95,12 @@ const AdminOrders = () => {
   };
 
   useEffect(() => {
+    if (!isAuthLoading && !isAdmin) {
+      toast.error('Admin access required');
+    }
+  }, [isAdmin, isAuthLoading]);
+
+useEffect(() => {
     fetchOrders();
   }, []);
 
@@ -126,40 +136,50 @@ const AdminOrders = () => {
     if (!orderToDelete) return;
     setIsDeleting(true);
     try {
-      // 1. حذف order_items أولاً (foreign-key constraint)
-      const { error: itemsErr, count: itemsCount } = await supabase
+      console.log('??? Starting delete for order:', orderToDelete.id);
+
+      const { data: deletedItems, error: itemsErr, count: itemsCount } = await supabase
         .from('order_items')
         .delete()
         .eq('order_id', orderToDelete.id)
-        .select(); // select() فعّل الـ count
+        .select();
 
-      if (itemsErr) throw itemsErr;
+      console.log('?? Items delete result:', { deletedItems, itemsCount, itemsErr });
 
-      // 2. حذف الطلب نفسه
-      const { error: orderErr, count: orderCount } = await supabase
+      if (itemsErr) {
+        console.error('? Items delete error:', itemsErr);
+        throw new Error(`Failed to delete order items: ${itemsErr.message}`);
+      }
+
+      const { data: deletedOrder, error: orderErr, count: orderCount } = await supabase
         .from('orders')
         .delete()
         .eq('id', orderToDelete.id)
-        .select(); // select() فعّل الـ count
+        .select();
 
-      if (orderErr) throw orderErr;
+      console.log('?? Order delete result:', { deletedOrder, orderCount, orderErr });
 
-      // ─── لو الـ count = 0 يعني RLS منع الحذف بدون error واضح ──
+      if (orderErr) {
+        console.error('? Order delete error:', orderErr);
+        throw new Error(`Failed to delete order: ${orderErr.message}`);
+      }
+
       if (orderCount === 0) {
-        toast.error('لم يتم الحذف — تحقق من صلاحيات RLS في Supabase');
-        setIsDeleting(false);
+        console.error('?? RLS Policy Issue: Delete returned 0 rows');
+        toast.error('Delete blocked by RLS policy - check admin permissions in Supabase');
         return;
       }
 
-      toast.success('تم حذف الطلب بنجاح');
+      console.log('? Order deleted successfully');
+      toast.success('???? ?????? ?????????? ??????????');
       setDeleteDialogOpen(false);
       setDialogOpen(false);
       setOrderToDelete(null);
       setSelectedOrder(null);
       fetchOrders();
-    } catch (error) {
-      console.error('Error deleting order:', error);
-      toast.error('خطأ في حذف الطلب');
+    } catch (error: any) {
+      console.error('?? Delete operation failed:', error);
+      toast.error(error.message || '?????? ???? ?????? ??????????');
     } finally {
       setIsDeleting(false);
     }
@@ -179,7 +199,8 @@ const AdminOrders = () => {
     const matchesSearch =
       order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer_phone.includes(searchTerm) ||
-      order.id.toLowerCase().includes(searchTerm.toLowerCase());
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.order_number || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -260,7 +281,7 @@ const AdminOrders = () => {
                           className="border-b last:border-0"
                         >
                           <td className="py-3 px-2 font-mono text-sm">
-                            #{order.id.slice(0, 8)}
+                            #{formatOrderNumber(order.order_number || order.id)}
                           </td>
                           <td className="py-3 px-2">
                             <div>
@@ -327,7 +348,7 @@ const AdminOrders = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>تفاصيل الطلب #{selectedOrder?.id.slice(0, 8)}</DialogTitle>
+              <DialogTitle>تفاصيل الطلب #{selectedOrder ? formatOrderNumber(selectedOrder.order_number || selectedOrder.id) : ""}</DialogTitle>
             </DialogHeader>
             {selectedOrder && (
               <div className="space-y-6">
@@ -464,7 +485,7 @@ const AdminOrders = () => {
                 <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 space-y-1.5">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">رقم الطلب</span>
-                    <span className="font-mono font-medium">#{orderToDelete.id.slice(0, 8)}</span>
+                    <span className="font-mono font-medium">#{formatOrderNumber(orderToDelete.order_number || orderToDelete.id)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">العميل</span>

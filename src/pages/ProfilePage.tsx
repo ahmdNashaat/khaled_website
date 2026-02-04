@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Order, OrderStatus } from '@/types';
+import { formatOrderNumber } from '@/utils/orderNumber';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
@@ -203,7 +204,7 @@ const ProfilePage = () => {
                             <div>
                               <p className="text-sm text-muted-foreground">رقم الطلب</p>
                               <p className="font-bold text-primary">
-                                #{order.supabaseOrderId?.slice(0, 8) || order.id.slice(0, 8)}
+                                #{formatOrderNumber(order.orderNumber || order.supabaseOrderId || order.id)}
                               </p>
                             </div>
                             <span className={`text-xs font-semibold px-3 py-1 rounded-full ${status.bg} ${status.text}`}>

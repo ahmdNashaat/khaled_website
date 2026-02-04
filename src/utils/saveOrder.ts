@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CartItem, DeliveryArea, AppliedOffer } from '@/types';
+import { generateOrderNumber, formatOrderNumber } from '@/utils/orderNumber';
 
 export interface SaveOrderInput {
   items: CartItem[];
@@ -17,9 +18,9 @@ export interface SaveOrderInput {
 
 /**
  * Saves the order + its line-items into Supabase.
- * Returns the generated order id on success, or throws.
+ * Returns the generated order id and order number on success, or throws.
  */
-export async function saveOrderToSupabase(input: SaveOrderInput): Promise<string> {
+export async function saveOrderToSupabase(input: SaveOrderInput): Promise<{ orderId: string; orderNumber: string }> {
   const { 
     items, 
     deliveryArea, 
@@ -32,10 +33,14 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<string
     userId // ⬅️ نستقبل الـ userId
   } = input;
 
+  const orderNumber = generateOrderNumber();
+
+
   // ─── 1. Insert the order row ─────────────────────────────────────────────
   const { data: orderRow, error: orderErr } = await supabase
     .from('orders')
     .insert({
+      order_number: orderNumber,
       user_id: userId || null, // ⬅️ نحفظ الـ user_id (null للـ guests)
       customer_name: customerName || 'عميل جديد',
       customer_phone: customerPhone || '',
@@ -49,7 +54,7 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<string
       total,
       notes: notes || null,
     })
-    .select('id')
+    .select('id, order_number')
     .single();
 
   if (orderErr || !orderRow) {
@@ -57,6 +62,7 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<string
   }
 
   const orderId: string = orderRow.id;
+  const savedOrderNumber: string = orderRow.order_number ?? orderNumber;
 
   // ─── 2. Insert order_items ───────────────────────────────────────────────
   const itemRows = items.map((item) => {
@@ -82,14 +88,14 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<string
     throw new Error(itemsErr.message ?? 'فشل حفظ المنتجات');
   }
 
-  return orderId;
+  return { orderId, orderNumber: savedOrderNumber };
 }
 
 /**
  * بناء رسالة الواتساب المحسّنة
  */
 export function buildWhatsAppMessage(input: {
-  orderId: string;
+  orderNumber: string;
   customerName: string;
   items: CartItem[];
   deliveryArea: DeliveryArea | undefined;
@@ -100,7 +106,7 @@ export function buildWhatsAppMessage(input: {
   appliedOffers: AppliedOffer[];
 }): string {
   const {
-    orderId,
+    orderNumber,
     customerName,
     items,
     deliveryArea,
@@ -111,8 +117,9 @@ export function buildWhatsAppMessage(input: {
     appliedOffers,
   } = input;
 
+
   let message = `◆ طلب جديد من متجر مذاق\n\n`;
-  message += `◆ رقم الطلب: ${orderId.slice(0, 8)}\n`;
+  message += `◆ رقم الطلب: ${formatOrderNumber(orderNumber)}\n`;
   message += `◆ اسم العميل: ${customerName}\n\n`;
   
   message += `◆ المنتجات:\n`;

@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { useOffers } from '@/hooks/useOffers';
 import { calculateCart } from '@/utils/offerCalculator';
 import { saveOrderToSupabase } from '@/utils/saveOrder';
+import { formatOrderNumber } from '@/utils/orderNumber';
 import { DeliveryArea } from '@/types';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -70,7 +71,7 @@ const CartPage = () => {
 
   const whatsappNumber = '201276166532';
 
-  const formatOrderMessage = (supabaseOrderId?: string) => {
+  const formatOrderMessage = (orderNumber?: string) => {
     const productLines = items
       .map((item) => {
         const price = item.selectedSize?.price || item.product.basePrice;
@@ -94,7 +95,7 @@ const CartPage = () => {
 
     const message = `
 🛒 *طلب جديد من متجر مذاق*
-${supabaseOrderId ? `\n*🔖 رقم الطلب:* ${supabaseOrderId.slice(0, 8)}` : ''}
+${orderNumber ? `\n*🔖 رقم الطلب:* ${formatOrderNumber(orderNumber)}` : ''}
 
 *📦 المنتجات:*
 ${productLines}${freeItemsText}
@@ -140,7 +141,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
 
     try {
       // 1. حفظ في Supabase – لو فشل نوقف هنا فعلاً
-      const supabaseOrderId = await saveOrderToSupabase({
+      const { orderId: supabaseOrderId, orderNumber } = await saveOrderToSupabase({
         items,
         deliveryArea,
         notes,
@@ -165,11 +166,12 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
         savings: cartCalculation.savings,
         appliedOffers: cartCalculation.appliedOffers,
         supabaseOrderId,
+        orderNumber,
         userId: user?.id ?? null,
       });
 
       // 3. فتح واتساب بعد الحفظ الناجح فقط
-      const message = formatOrderMessage(supabaseOrderId);
+      const message = formatOrderMessage(orderNumber);
       window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
 
       // 4. تفريغ السلة

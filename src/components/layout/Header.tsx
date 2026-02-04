@@ -13,11 +13,11 @@ import {
   User,
   ChevronDown,
   Heart,
-  Bell,
 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
+import { NotificationBell } from '@/components/NotificationBell';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -200,6 +200,10 @@ const Header = () => {
                   <Package className="w-5 h-5" />
                 </motion.div>
               </Link>
+            )}
+
+            {user && (
+              <NotificationBell />
             )}
 
             {/* Cart Button - ENHANCED */}

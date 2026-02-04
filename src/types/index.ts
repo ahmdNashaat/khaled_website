@@ -143,6 +143,7 @@ export interface OrderItem {
 
 export interface Order {
   id: string;                          // local unique id
+  orderNumber: string;                // human-readable order number
   supabaseOrderId: string | null;      // الـ id من Supabase (نربطهم)
   userId?: string | null;
   createdAt: string;
@@ -164,4 +165,29 @@ export interface Order {
     discount: number;
     message: string;
   }[];
+}
+
+export type NotificationType =
+  | 'order_status_change'
+  | 'new_order'
+  | 'order_cancelled'
+  | 'promotion';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  order_id: string | null;
+  order_number: string | null;
+  is_read: boolean;
+  created_at: string;
+  metadata: {
+    old_status?: string;
+    new_status?: string;
+    customer_name?: string;
+    total?: number;
+    [key: string]: any;
+  } | null;
 }

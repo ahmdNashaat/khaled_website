@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Order, OrderContactMethod, CartItem, DeliveryArea, AppliedOffer } from '@/types';
+import { generateOrderNumber } from '@/utils/orderNumber';
 
 // ─── Helper ──────────────────────────────────────────────────────────────────
 const generateId = (): string =>
@@ -18,6 +19,7 @@ export interface CreateOrderInput {
   total: number;
   savings: number;
   appliedOffers: AppliedOffer[];
+  orderNumber?: string;
   supabaseOrderId?: string;   // الـ id من Supabase عشان نربطهم
   userId?: string | null;      // ⬅️ معرف المستخدم
 }
@@ -29,7 +31,9 @@ interface OrdersState {
   getOrderById: (id: string) => Order | undefined;
   getUserOrders: (userId: string | null) => Order[]; // ⬅️ جديد: جلب طلبات مستخدم معين
   updateOrderStatus: (supabaseOrderId: string, newStatus: string) => void;
+  updateOrderNumber: (supabaseOrderId: string, orderNumber: string) => void;
   removeOrder: (supabaseOrderId: string) => void;
+  removeOrderById: (id: string) => void;
   clearOrders: () => void; // ⬅️ جديد: مسح كل الطلبات (مفيد عند logout)
 }
 
@@ -41,6 +45,7 @@ export const useOrdersStore = create<OrdersState>()(
       createOrder: (input) => {
         const order: Order = {
           id: generateId(),
+          orderNumber: input.orderNumber ?? generateOrderNumber(),
           supabaseOrderId: input.supabaseOrderId ?? null,
           userId: input.userId ?? null,
           createdAt: new Date().toISOString(),
@@ -114,10 +119,24 @@ export const useOrdersStore = create<OrdersState>()(
         }));
       },
 
+      updateOrderNumber: (supabaseOrderId, orderNumber) => {
+        set((state) => ({
+          orders: state.orders.map((o) =>
+            o.supabaseOrderId === supabaseOrderId ? { ...o, orderNumber } : o
+          ),
+        }));
+      },
+
       // ─── الأدمن حذف الطلب من الداتا بيز → نحذفه محلياً
       removeOrder: (supabaseOrderId) => {
         set((state) => ({
           orders: state.orders.filter((o) => o.supabaseOrderId !== supabaseOrderId),
+        }));
+      },
+
+      removeOrderById: (id) => {
+        set((state) => ({
+          orders: state.orders.filter((o) => o.id !== id),
         }));
       },
 

@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AdminLayout from '@/components/admin/AdminLayout';
+import { AdminNotificationPanel } from '@/components/admin/AdminNotificationPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Package, FolderTree, ShoppingCart, Tag, TrendingUp, Clock, ArrowRight } from 'lucide-react';
+import { formatOrderNumber } from '@/utils/orderNumber';
 
 interface DashboardStats {
   productsCount: number;
@@ -133,7 +135,10 @@ const AdminDashboard = () => {
         </div>
 
         {/* Recent Orders */}
-        <Card>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+<Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -171,7 +176,7 @@ const AdminDashboard = () => {
                       return (
                         <tr key={order.id} className="border-b last:border-0">
                           <td className="py-3 px-2 font-mono text-sm">
-                            #{order.id.slice(0, 8)}
+                            #{formatOrderNumber(order.order_number || order.id)}
                           </td>
                           <td className="py-3 px-2">
                             <p className="font-medium">{order.customer_name}</p>
@@ -197,6 +202,12 @@ const AdminDashboard = () => {
             )}
           </CardContent>
         </Card>
+          </div>
+          <div>
+            <AdminNotificationPanel />
+          </div>
+        </div>
+
       </div>
     </AdminLayout>
   );

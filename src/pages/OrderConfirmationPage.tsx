@@ -5,6 +5,7 @@ import { Clock, MapPin, ShoppingBag, ArrowRight, MessageCircle, CheckCircle2 } f
 import Layout from '@/components/layout/Layout';
 import { useOrdersStore } from '@/store/ordersStore';
 import { Order } from '@/types';
+import { formatOrderNumber } from '@/utils/orderNumber';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString('ar-EG', {
@@ -35,9 +36,7 @@ const OrderConfirmationPage = () => {
 
   if (!order) return null;
 
-  const displayId = order.supabaseOrderId
-    ? order.supabaseOrderId.slice(0, 8)
-    : order.id;
+  const displayId = formatOrderNumber(order.orderNumber || order.supabaseOrderId || order.id);
 
   return (
     <Layout>
