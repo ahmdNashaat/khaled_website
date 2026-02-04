@@ -26,7 +26,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -240,7 +240,6 @@ const Header = () => {
                     className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 rounded-xl hover:bg-muted transition-all border-2 border-transparent hover:border-primary/20"
                   >
                     <Avatar className="w-9 h-9 sm:w-10 sm:h-10 ring-2 ring-primary/20">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold">
                         {getUserInitials()}
                       </AvatarFallback>
@@ -261,7 +260,6 @@ const Header = () => {
                   <DropdownMenuLabel className="text-right">
                     <div className="flex items-center gap-3 py-2">
                       <Avatar className="w-12 h-12">
-                        <AvatarImage src={user?.user_metadata?.avatar_url} />
                         <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold text-lg">
                           {getUserInitials()}
                         </AvatarFallback>
@@ -439,7 +437,6 @@ const Header = () => {
                   {/* User Info */}
                   <div className="flex items-center gap-3 px-4 py-3 mb-2">
                     <Avatar className="w-12 h-12">
-                      <AvatarImage src={user?.user_metadata?.avatar_url} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-secondary text-white font-bold">
                         {getUserInitials()}
                       </AvatarFallback>

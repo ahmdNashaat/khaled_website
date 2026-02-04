@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Mail, Phone, User } from 'lucide-react';
-import AvatarUpload from '@/components/profile/AvatarUpload';
 
 const phoneRegex = /^(010|011|012|015)\d{8}$/;
 
@@ -18,11 +17,6 @@ export const profileSchema = z.object({
     .optional()
     .or(z.literal(''))
     .refine((value) => !value || phoneRegex.test(value), 'رقم جوال غير صحيح'),
-  avatar_url: z
-    .string()
-    .url('رابط الصورة غير صالح')
-    .optional()
-    .or(z.literal('')),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -62,37 +56,8 @@ const EditProfileDialog = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-              <div className="lg:col-span-2 space-y-3">
-                <div className="text-sm text-muted-foreground">صورة الملف الشخصي</div>
-                <FormField
-                  control={form.control}
-                  name="avatar_url"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <div className="space-y-3">
-                          <AvatarUpload
-                            value={field.value || ''}
-                            onChange={(url) => field.onChange(url)}
-                          />
-                          <Input
-                            placeholder="أو ضع رابط الصورة هنا"
-                            value={field.value || ''}
-                            onChange={field.onChange}
-                            dir="ltr"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <p className="text-xs text-muted-foreground">
-                  يمكنك رفع صورة أو إدخال رابط مباشر لها.
-                </p>
-              </div>
-              <div className="lg:col-span-3 space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="space-y-4">
                 <FormField
                   control={form.control}
                   name="full_name"

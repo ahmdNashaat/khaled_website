@@ -59,10 +59,10 @@ const OrderDetailsDialog = ({
 
       setIsLoading(true);
       try {
-        const [{ data: profileData }, { data: addressesData }, { count }] = await Promise.all([
+          const [{ data: profileData }, { data: addressesData }, { count }] = await Promise.all([
           supabase
             .from('profiles')
-            .select('user_id, full_name, phone, avatar_url, created_at')
+            .select('user_id, full_name, phone, created_at')
             .eq('user_id', order.user_id)
             .maybeSingle(),
           supabase

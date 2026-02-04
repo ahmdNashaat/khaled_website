@@ -111,7 +111,7 @@ const CartPage = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, full_name, phone, avatar_url, created_at')
+          .select('user_id, full_name, phone, created_at')
           .eq('user_id', user.id)
           .maybeSingle();
 

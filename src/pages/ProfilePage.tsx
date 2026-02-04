@@ -66,7 +66,7 @@ const ProfilePage = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('user_id, full_name, phone, avatar_url, created_at')
+          .select('user_id, full_name, phone, created_at')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -79,9 +79,8 @@ const ProfilePage = () => {
               user_id: user.id,
               full_name: user.user_metadata?.full_name || null,
               phone: user.user_metadata?.phone || null,
-              avatar_url: user.user_metadata?.avatar_url || null,
             })
-            .select('user_id, full_name, phone, avatar_url, created_at')
+            .select('user_id, full_name, phone, created_at')
             .single();
 
           if (createError) throw createError;
@@ -123,7 +122,6 @@ const ProfilePage = () => {
       user_id: user.id,
       full_name: values.full_name,
       phone: values.phone || null,
-      avatar_url: values.avatar_url || null,
       created_at: profile?.created_at,
     };
 
@@ -138,7 +136,6 @@ const ProfilePage = () => {
             user_id: user.id,
             full_name: values.full_name,
             phone: values.phone || null,
-            avatar_url: values.avatar_url || null,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id' }
@@ -150,7 +147,6 @@ const ProfilePage = () => {
         data: {
           full_name: values.full_name,
           phone: values.phone || null,
-          avatar_url: values.avatar_url || null,
         },
       });
 
@@ -214,7 +210,6 @@ const ProfilePage = () => {
   const editInitialValues: ProfileFormValues = {
     full_name: profile?.full_name || user?.user_metadata?.full_name || '',
     phone: profile?.phone || user?.user_metadata?.phone || '',
-    avatar_url: profile?.avatar_url || user?.user_metadata?.avatar_url || '',
   };
 
   return (
@@ -232,15 +227,7 @@ const ProfilePage = () => {
               <CardContent className="pt-6">
                 <div className="text-center space-y-4">
                   <div className="w-24 h-24 mx-auto bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center text-white text-3xl font-bold overflow-hidden">
-                    {profile?.avatar_url ? (
-                      <img
-                        src={profile.avatar_url}
-                        alt={profile?.full_name || user?.email || 'User'}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      (profile?.full_name || user?.email || 'U').charAt(0).toUpperCase()
-                    )}
+                    {(profile?.full_name || user?.email || 'U').charAt(0).toUpperCase()}
                   </div>
 
                   <div>

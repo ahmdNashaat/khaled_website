@@ -15,7 +15,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
-import AvatarUpload from '@/components/profile/AvatarUpload';
 
 type AdminPreferences = {
   notificationsEnabled: boolean;
@@ -28,7 +27,6 @@ type AdminPreferences = {
 const AdminSettings = () => {
   const { user } = useAuth();
   const [displayName, setDisplayName] = useState(user?.user_metadata?.full_name || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const [password, setPassword] = useState('');
@@ -47,7 +45,6 @@ const AdminSettings = () => {
   useEffect(() => {
     if (user) {
       setDisplayName(user.user_metadata?.full_name || '');
-      setAvatarUrl(user.user_metadata?.avatar_url || '');
     }
   }, [user]);
 
@@ -127,7 +124,6 @@ const AdminSettings = () => {
           {
             user_id: user.id,
             full_name: displayName || null,
-            avatar_url: avatarUrl || null,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'user_id' }
@@ -138,7 +134,6 @@ const AdminSettings = () => {
       await supabase.auth.updateUser({
         data: {
           full_name: displayName || null,
-          avatar_url: avatarUrl || null,
         },
       });
 
@@ -190,20 +185,6 @@ const AdminSettings = () => {
               <CardTitle>معلومات الحساب</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <Label>صورة الحساب</Label>
-                <div className="mt-2">
-                  <AvatarUpload value={avatarUrl} onChange={setAvatarUrl} />
-                  <div className="mt-3">
-                    <Input
-                      value={avatarUrl}
-                      onChange={(e) => setAvatarUrl(e.target.value)}
-                      placeholder="أو ضع رابط الصورة هنا"
-                      dir="ltr"
-                    />
-                  </div>
-                </div>
-              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>اسم العرض</Label>
