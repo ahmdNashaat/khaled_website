@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Clock, MapPin, MessageCircle, RefreshCw, Ban, Eye, Trash2, AlertTriangle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useOrdersStore } from '@/store/ordersStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, OrderStatus } from '@/types';
+import { Order, OrderStatus, Product, ProductSize } from '@/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -39,6 +39,98 @@ const mapSupabaseStatus = (dbStatus: string): OrderStatus => {
     'cancelled': 'cancelled',
   };
   return statusMap[dbStatus] || 'pending';
+};
+
+
+const parseDeliveryArea = (address?: string | null, city?: string | null) => {
+  const trimmedAddress = (address || '').trim();
+  const trimmedCity = (city || '').trim();
+  if (!trimmedAddress && !trimmedCity) return null;
+
+  let resolvedCity = trimmedCity;
+  let resolvedArea = '';
+
+  if (trimmedAddress.includes('-')) {
+    const parts = trimmedAddress.split('-').map((p) => p.trim());
+    resolvedCity = resolvedCity || parts[0] || '';
+    resolvedArea = (parts[1] || '').split(',')[0]?.trim() || '';
+  }
+
+  if (!resolvedCity && trimmedAddress) {
+    resolvedCity = trimmedAddress.split(',')[0]?.trim() || '';
+  }
+
+  if (!resolvedCity) return null;
+
+  return {
+    city: resolvedCity,
+    area: resolvedArea,
+  };
+};
+
+const toLocalOrderFromDb = (
+  dbOrder: any,
+  productById: Record<string, any>,
+  existing?: Order | null
+): Order => {
+  const deliveryArea = parseDeliveryArea(dbOrder.customer_address, dbOrder.customer_city);
+  const mappedStatus = mapSupabaseStatus(dbOrder.status);
+
+  const items = (dbOrder.order_items || []).map((item: any) => {
+    const productRow = productById[item.product_id] || null;
+    const product: Product = {
+      id: productRow?.id || item.product_id || `deleted-${item.id}`,
+      nameAr: productRow?.name_ar || item.product_name || 'Product',
+      slug: productRow?.slug || '',
+      categoryId: productRow?.category_id || '',
+      categoryName: (productRow?.categories as any)?.name_ar || '',
+      shortDescription: productRow?.short_description || '',
+      fullDescription: productRow?.full_description || '',
+      basePrice: Number(productRow?.base_price ?? item.unit_price ?? 0),
+      originalPrice: productRow?.original_price ? Number(productRow.original_price) : undefined,
+      unit: productRow?.unit || '',
+      sizes: [],
+      mainImage: productRow?.main_image || '/placeholder.svg',
+      additionalImages: productRow?.additional_images || [],
+      isAvailable: productRow?.is_available ?? true,
+      isFeatured: productRow?.is_featured ?? false,
+      discountPercentage: productRow?.discount_percentage || undefined,
+    };
+
+    const selectedSize: ProductSize | undefined = item.size_label
+      ? {
+          id: `size-${item.id}`,
+          label: item.size_label,
+          price: Number(item.unit_price ?? product.basePrice ?? 0),
+        }
+      : undefined;
+
+    return {
+      product,
+      quantity: Number(item.quantity || 0),
+      selectedSize,
+      lineTotal: Number(item.total_price ?? (Number(item.unit_price ?? product.basePrice) * Number(item.quantity || 0))),
+    };
+  });
+
+  return {
+    id: existing?.id || dbOrder.id,
+    orderNumber: dbOrder.order_number || existing?.orderNumber || dbOrder.id,
+    supabaseOrderId: dbOrder.id,
+    userId: dbOrder.user_id || existing?.userId || null,
+    createdAt: dbOrder.created_at,
+    status: mappedStatus,
+    contactMethod: 'whatsapp',
+    items,
+    deliveryArea,
+    notes: dbOrder.notes || '',
+    subtotal: Number(dbOrder.subtotal ?? 0),
+    deliveryFee: Number(dbOrder.delivery_fee ?? 0),
+    totalDiscount: Number(existing?.totalDiscount ?? 0),
+    total: Number(dbOrder.total ?? 0),
+    savings: Number(existing?.savings ?? 0),
+    appliedOffers: existing?.appliedOffers || [],
+  };
 };
 
 // العميل يقدر يلغي بس لما الطلب معلق أو مؤكد
@@ -179,6 +271,7 @@ const MyOrdersPage = () => {
   const updateOrderStatus = useOrdersStore((state) => state.updateOrderStatus);
   const updateOrderNumber = useOrdersStore((state) => state.updateOrderNumber);
   const removeOrder = useOrdersStore((state) => state.removeOrder);
+  const upsertOrders = useOrdersStore((state) => state.upsertOrders);
   const removeOrderById = useOrdersStore((state) => state.removeOrderById);
   const [isSyncing, setIsSyncing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -187,6 +280,7 @@ const MyOrdersPage = () => {
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { user } = useAuth();
+  const productsCacheRef = useRef<Record<string, any>>({});
 
   // ⬅️ فلترة الطلبات: نعرض فقط طلبات المستخدم الحالي
   const userOrders = getUserOrders(user ? user.id : null);
@@ -201,16 +295,81 @@ const MyOrdersPage = () => {
       // ⬅️ جلب طلبات المستخدم الحالي فقط من Supabase
       const { data, error } = await supabase
         .from('orders')
-        .select('id, status, created_at, order_number, deleted_at')
-        .eq('user_id', user.id) // ⬅️ هنا الحل الأساسي!
+        .select(`
+          id,
+          user_id,
+          status,
+          created_at,
+          order_number,
+          deleted_at,
+          subtotal,
+          delivery_fee,
+          total,
+          notes,
+          customer_address,
+          customer_city,
+          order_items(
+            id,
+            product_id,
+            product_name,
+            size_label,
+            quantity,
+            unit_price,
+            total_price
+          )
+        `)
+        .eq('user_id', user.id) // user filter
+        .is('deleted_at', null)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       if (data) {
         const dbOrderIds = new Set(data.map((r) => r.id));
-        
-        // حذف الطلبات اللي الأدمن حذفها من الـ DB
+
+        const productIds = Array.from(
+          new Set(
+            data
+              .flatMap((order) => order.order_items || [])
+              .map((item) => item.product_id)
+              .filter(Boolean)
+          )
+        );
+
+        const cachedProducts = productsCacheRef.current;
+        const missingProductIds = productIds.filter((id) => !cachedProducts[id]);
+
+        if (missingProductIds.length > 0) {
+          const { data: productsData, error: productsError } = await supabase
+            .from('products')
+            .select(`
+              id,
+              name_ar,
+              slug,
+              category_id,
+              short_description,
+              full_description,
+              base_price,
+              original_price,
+              unit,
+              main_image,
+              additional_images,
+              is_available,
+              is_featured,
+              discount_percentage,
+              categories(name_ar)
+            `)
+            .in('id', missingProductIds);
+
+          if (productsError) throw productsError;
+
+          productsCacheRef.current = (productsData || []).reduce((acc, row) => {
+            acc[row.id] = row;
+            return acc;
+          }, { ...cachedProducts } as Record<string, any>);
+        }
+
+        // ?????? ?????????????? ???????? ???????????? ?????????? ???? ?????? DB
         const localUserOrderIds = orders
           .filter((o) => o.supabaseOrderId && o.userId === user.id)
           .map((o) => o.supabaseOrderId as string);
@@ -221,23 +380,12 @@ const MyOrdersPage = () => {
           }
         });
 
-        // تحديث حالة الطلبات
-        let changed = false;
-        data.forEach((dbOrder) => {
-          const local = orders.find((o) => o.supabaseOrderId === dbOrder.id);
-          if (local) {
-            if (dbOrder.order_number && dbOrder.order_number !== local.orderNumber) {
-              updateOrderNumber(dbOrder.id, dbOrder.order_number);
-            }
-            const mapped = mapSupabaseStatus(dbOrder.status);
-            if (local.status !== mapped) {
-              updateOrderStatus(dbOrder.id, dbOrder.status);
-              changed = true;
-            }
-          }
+        const mergedOrders = data.map((dbOrder) => {
+          const existing = orders.find((o) => o.supabaseOrderId === dbOrder.id) || null;
+          return toLocalOrderFromDb(dbOrder, productsCacheRef.current, existing);
         });
 
-        if (changed) toast.success('تم تحديث حالة الطلبات');
+        upsertOrders(mergedOrders);
       }
     } catch (err) {
       console.error('sync error:', err);
@@ -245,7 +393,7 @@ const MyOrdersPage = () => {
     } finally {
       setIsSyncing(false);
     }
-  }, [user, orders, updateOrderStatus, updateOrderNumber, removeOrder]);
+  }, [user, orders, removeOrder, upsertOrders]);
 
   // ─── Auto-sync كل 30 ثانية ──────────────────────────────────────
   useEffect(() => {
@@ -260,32 +408,42 @@ const MyOrdersPage = () => {
   useEffect(() => {
     if (!user) return;
 
-    const localIds = orders
-      .filter((o) => o.supabaseOrderId && o.userId === user.id)
-      .map((o) => o.supabaseOrderId as string);
-
-    if (localIds.length === 0) return;
-
     const channel = supabase
       .channel('my-orders-realtime')
-      // الأدمن غيّر الحالة
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orders',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          syncOrdersFromSupabase();
+        }
+      )
       .on(
         'postgres_changes',
         {
           event: 'UPDATE',
           schema: 'public',
           table: 'orders',
-          filter: `id=in.(${localIds.join(',')})`,
+          filter: `user_id=eq.${user.id}`,
         },
         (payload) => {
-          const row = payload.new as { id: string; status: string; deleted_at?: string | null };
+          const row = payload.new as { id: string; status?: string; order_number?: string | null; deleted_at?: string | null };
           if (row.deleted_at) {
             removeOrder(row.id);
-            toast.warning('تم إخفاء أحد طلباتك');
+            toast.warning('Order hidden.');
             return;
           }
-          updateOrderStatus(row.id, row.status);
-          toast.info('تم تحديث حالة طلب');
+          if (row.order_number) {
+            updateOrderNumber(row.id, row.order_number);
+          }
+          if (row.status) {
+            updateOrderStatus(row.id, row.status);
+            toast.info('Order status updated.');
+          }
         }
       )
       .subscribe();
@@ -293,10 +451,11 @@ const MyOrdersPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, orders.length, updateOrderStatus, removeOrder]);
+  }, [user, syncOrdersFromSupabase, updateOrderStatus, updateOrderNumber, removeOrder]);
+
 
   // ─── إلغاء طلب من جانب العميل ───────────────────────────────────
-    const openOrderDetails = (order: Order) => {
+  const openOrderDetails = (order: Order) => {
     setSelectedOrder(order);
     setDetailsDialogOpen(true);
   };
