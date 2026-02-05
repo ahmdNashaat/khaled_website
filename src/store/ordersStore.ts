@@ -29,7 +29,8 @@ interface OrdersState {
   orders: Order[];
   createOrder: (input: CreateOrderInput) => Order;
   getOrderById: (id: string) => Order | undefined;
-  getUserOrders: (userId: string | null) => Order[]; // ⬅️ جديد: جلب طلبات مستخدم معين
+  getUserOrders: (userId: string | null) => Order[];
+  upsertOrders: (incoming: Order[]) => void;
   updateOrderStatus: (supabaseOrderId: string, newStatus: string) => void;
   updateOrderNumber: (supabaseOrderId: string, orderNumber: string) => void;
   removeOrder: (supabaseOrderId: string) => void;
@@ -94,6 +95,40 @@ export const useOrdersStore = create<OrdersState>()(
             return orderUserId === null && o.supabaseOrderId === null;
           }
           return orderUserId === normalizedUserId;
+        });
+      },
+
+      // merge Supabase orders into local store
+      upsertOrders: (incoming) => {
+        if (!incoming || incoming.length === 0) return;
+
+        set((state) => {
+          const next = [...state.orders];
+
+          incoming.forEach((order) => {
+            if (!order.supabaseOrderId) return;
+            const existingIndex = next.findIndex(
+              (o) => o.supabaseOrderId === order.supabaseOrderId
+            );
+
+            if (existingIndex >= 0) {
+              const existing = next[existingIndex];
+              next[existingIndex] = {
+                ...existing,
+                ...order,
+                id: existing.id,
+              };
+            } else {
+              next.unshift(order);
+            }
+          });
+
+          next.sort(
+            (a, b) =>
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+          );
+
+          return { orders: next };
         });
       },
 
