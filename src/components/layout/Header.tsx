@@ -142,24 +142,24 @@ const Header = () => {
       </div>
 
       {/* ===== MAIN HEADER ===== */}
-      <div className="section-container py-3 sm:py-4">
+      <div className="section-container py-2 sm:py-3">
         <div className="flex items-center justify-between gap-4">
           {/* === LOGO === */}
           <Link to="/" className="flex items-center gap-3 group shrink-0">
             <motion.div
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="relative w-14 h-14 sm:w-16 sm:h-16"
+              className="relative w-12 h-12 sm:w-14 sm:h-14"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-secondary rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow" />
               <div className="relative w-full h-full flex items-center justify-center">
-                <span className="text-white font-black text-2xl sm:text-3xl">م</span>
+                <span className="text-white font-black text-xl sm:text-2xl">م</span>
               </div>
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-br from-secondary to-primary rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity" />
             </motion.div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-primary leading-none">
+              <h1 className="text-xl sm:text-2xl font-black text-primary leading-none">
                 مَـذاق
               </h1>
               <p className="text-xs text-muted-foreground hidden sm:block">
@@ -392,7 +392,7 @@ const Header = () => {
               className="lg:hidden w-11 h-11 rounded-xl hover:bg-muted flex items-center justify-center transition-colors"
               aria-label="القائمة"
             >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMenuOpen ? <X className="w-5 h-5 sm:w-6 sm:h-6" /> : <Menu className="w-5 h-5 sm:w-6 sm:h-6" />}
             </motion.button>
           </div>
         </div>
@@ -414,12 +414,12 @@ const Header = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="ابحث عن المنتجات..."
-                  className="w-full pr-12 pl-12 py-3.5 bg-muted rounded-xl border-2 border-transparent focus:border-primary focus:bg-white outline-none transition-all text-base"
+                  className="w-full pr-12 pl-12 py-2.5 sm:py-3 min-h-[44px] bg-muted rounded-xl border-2 border-transparent focus:border-primary focus:bg-white outline-none transition-all text-sm sm:text-base"
                   autoFocus
                 />
                 <button
                   type="submit"
-                  className="absolute left-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[44px] bg-primary text-white rounded-lg text-sm font-semibold hover:bg-primary-dark transition-colors"
                 >
                   بحث
                 </button>
@@ -447,7 +447,7 @@ const Header = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="ابحث عن المنتجات..."
-                    className="w-full pr-11 pl-3 py-3 bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all"
+                    className="w-full pr-11 pl-3 py-2.5 min-h-[44px] bg-muted rounded-xl border-2 border-transparent focus:border-primary outline-none transition-all text-sm"
                   />
                 </form>
               </div>
@@ -583,3 +583,6 @@ const Header = () => {
 };
 
 export default Header;
+
+
+

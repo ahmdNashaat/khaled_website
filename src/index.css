@@ -115,6 +115,39 @@
     overflow-x: hidden;
   }
 
+  /* Mobile-First Typography */
+  html {
+    font-size: 14px;
+  }
+
+  @media (min-width: 640px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      font-size: 16px;
+    }
+  }
+
+  h1 {
+    @apply text-xl sm:text-2xl lg:text-3xl;
+  }
+  
+  h2 {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+  
+  h3 {
+    @apply text-base sm:text-lg lg:text-xl;
+  }
+  
+  h4 {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+
   img,
   video,
   canvas {
@@ -171,7 +204,7 @@
   
   /* Button Primary Variant */
   .btn-primary {
-    @apply bg-primary text-primary-foreground px-6 py-3 rounded-xl font-semibold 
+    @apply bg-primary text-primary-foreground px-3 py-2 sm:px-4 sm:py-2.5 lg:px-6 lg:py-3 rounded-xl font-semibold 
            transition-all duration-200 hover:opacity-90 active:scale-95;
     box-shadow: var(--shadow-warm);
   }
@@ -182,14 +215,14 @@
   
   /* Button Secondary/Gold Variant */
   .btn-gold {
-    @apply bg-secondary text-secondary-foreground px-6 py-3 rounded-xl font-semibold 
+    @apply bg-secondary text-secondary-foreground px-3 py-2 sm:px-4 sm:py-2.5 lg:px-6 lg:py-3 rounded-xl font-semibold 
            transition-all duration-200 hover:opacity-90 active:scale-95;
     box-shadow: var(--shadow-gold);
   }
   
   /* Section Container */
   .section-container {
-    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    @apply max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 xl:px-8;
   }
   
   /* Category Card */
@@ -227,7 +260,7 @@
   
   /* Input RTL */
   .input-rtl {
-    @apply w-full px-4 py-3 border-2 border-border rounded-xl 
+    @apply w-full px-3 py-2 sm:px-4 sm:py-2.5 border-2 border-border rounded-xl 
            focus:border-primary focus:ring-2 focus:ring-primary/20 
            outline-none transition-all duration-200 text-right bg-white;
   }

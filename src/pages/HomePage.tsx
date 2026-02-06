@@ -258,7 +258,7 @@ const HomePage = () => {
   return (
     <Layout>
       {/* ===== ENHANCED HERO SECTION ===== */}
-      <section className="relative h-[600px] sm:h-[700px] lg:h-[750px] overflow-hidden bg-muted">
+      <section className="relative min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] overflow-hidden bg-muted">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={currentSlide}
@@ -536,13 +536,13 @@ const HomePage = () => {
           </div>
 
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="h-96 bg-muted animate-pulse rounded-2xl" />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 lg:gap-4">
               {featuredProducts.map((product, index) => (
                 <ProductCard key={product.id} product={product} index={index} />
               ))}
@@ -645,3 +645,4 @@ const HomePage = () => {
 };
 
 export default HomePage;
+

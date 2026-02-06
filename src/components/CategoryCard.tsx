@@ -11,82 +11,77 @@ interface CategoryCardProps {
 const CategoryCard = ({ category, index = 0 }: CategoryCardProps) => {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+      initial={{ opacity: 0, scale: 0.9, y: 15 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ 
-        duration: 0.5, 
-        delay: index * 0.08,
-        ease: [0.25, 0.46, 0.45, 0.94]
+      transition={{
+        duration: 0.4,
+        delay: index * 0.05,
       }}
-      whileHover={{ y: -8 }}
+      whileHover={{ y: -5 }}
       className="group"
     >
       <Link
         to={`/products?category=${category.id}`}
-        className="block relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent via-white to-accent-light border-2 border-border/50 hover:border-primary/40 shadow-sm hover:shadow-xl transition-all duration-300"
+        className="block relative overflow-hidden rounded-lg sm:rounded-xl bg-gradient-to-br from-accent via-white to-accent-light border border-border/50 hover:border-primary/40 shadow-sm hover:shadow-lg transition-all duration-300"
       >
-        {/* Background Pattern */}
         <div className="absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity pattern-overlay" />
-        
-        {/* Gradient Overlay */}
+
         <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-transparent to-secondary/0 group-hover:from-primary/10 group-hover:to-secondary/10 transition-all duration-300" />
 
-        {/* Content */}
-        <div className="relative p-6 text-center space-y-3">
-          {/* Icon/Image Container */}
+        {/* CONTENT - COMPACT */}
+        <div className="relative p-3 sm:p-4 text-center space-y-2">
+          {/* ICON - SMALLER */}
           <motion.div
-            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileHover={{ scale: 1.08, rotate: 3 }}
             transition={{ type: 'spring', stiffness: 300 }}
-            className="w-20 h-20 mx-auto bg-white rounded-2xl shadow-lg flex items-center justify-center overflow-hidden group-hover:shadow-2xl transition-all border-2 border-border/30"
+            className="w-14 h-14 sm:w-16 sm:h-16 mx-auto bg-white rounded-xl shadow-md flex items-center justify-center overflow-hidden group-hover:shadow-lg transition-all border border-border/30"
           >
             {category.image ? (
-              <img 
-                src={category.image} 
+              <img
+                src={category.image}
                 alt={category.nameAr}
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-4xl group-hover:scale-110 transition-transform">
+              <span className="text-2xl sm:text-3xl group-hover:scale-110 transition-transform">
                 {category.icon || '📦'}
               </span>
             )}
           </motion.div>
 
-          {/* Category Name */}
+          {/* CATEGORY NAME - COMPACT */}
           <div className="space-y-1">
-            <h3 className="font-bold text-lg text-foreground group-hover:text-primary transition-colors">
+            <h3 className="font-bold text-sm sm:text-base text-foreground group-hover:text-primary transition-colors">
               {category.nameAr}
             </h3>
-            
-            {/* Products Count */}
-            <div className="flex items-center justify-center gap-1.5">
-              <span className="text-sm text-muted-foreground">
+
+            <div className="flex items-center justify-center gap-1">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 {category.productsCount || 0}
               </span>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 منتج
               </span>
             </div>
           </div>
 
-          {/* Description (Optional) */}
+          {/* DESCRIPTION - HIDDEN ON MOBILE */}
           {category.description && (
-            <p className="text-xs text-muted-foreground line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <p className="text-xs text-muted-foreground line-clamp-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hidden sm:block">
               {category.description}
             </p>
           )}
 
-          {/* Arrow Icon */}
+          {/* ARROW - SMALLER */}
           <motion.div
-            initial={{ x: -10, opacity: 0 }}
-            className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"
-            whileHover={{ x: -5 }}
+            initial={{ x: -8, opacity: 0 }}
+            className="flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hidden sm:flex"
+            whileHover={{ x: -4 }}
           >
-            <ChevronLeft className="w-5 h-5 text-primary" />
+            <ChevronLeft className="w-4 h-4 text-primary" />
           </motion.div>
         </div>
 
-        {/* Shine Effect */}
         <div className="absolute inset-0 -right-full group-hover:right-0 bg-gradient-to-l from-white/20 to-transparent transition-all duration-700 pointer-events-none" />
       </Link>
     </motion.div>

@@ -13,8 +13,21 @@ export default {
       },
     },
     extend: {
+      screens: {
+        xs: "375px",
+        sm: "640px",
+        md: "768px",
+        lg: "1024px",
+        xl: "1280px",
+        "2xl": "1536px",
+      },
       fontFamily: {
         cairo: ['Cairo', 'sans-serif'],
+      },
+      spacing: {
+        "mobile-tight": "0.5rem",
+        "mobile-normal": "0.75rem",
+        "mobile-relaxed": "1rem",
       },
       colors: {
         border: "hsl(var(--border))",
