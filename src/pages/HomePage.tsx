@@ -132,37 +132,56 @@ const HomePage = () => {
           );
         }
 
-        // جلب المنتجات المميزة
+        // ??? ???????? ???????
+        const mapProductRow = (p: any) => ({
+          id: p.id,
+          nameAr: p.name_ar,
+          slug: p.slug,
+          categoryId: p.category_id || '',
+          categoryName: (p.categories as any)?.name_ar || '',
+          shortDescription: p.short_description || '',
+          fullDescription: p.full_description || '',
+          basePrice: Number(p.base_price),
+          originalPrice: p.original_price ? Number(p.original_price) : undefined,
+          unit: p.unit,
+          sizes: [],
+          mainImage: p.main_image || '',
+          additionalImages: p.additional_images || [],
+          isAvailable: p.is_available,
+          isFeatured: p.is_featured,
+          discountPercentage: p.discount_percentage || undefined,
+          featuredOrder: p.featured_order ?? null,
+        });
+
         const { data: productsData, error: productsError } = await supabase
           .from('products')
           .select('*, categories(name_ar)')
           .eq('is_available', true)
           .eq('is_featured', true)
+          .order('featured_order', { ascending: true })
+          .order('created_at', { ascending: false })
           .limit(8);
 
         if (productsError) throw productsError;
 
-        if (productsData) {
-          setFeaturedProducts(
-            productsData.map((p) => ({
-              id: p.id,
-              nameAr: p.name_ar,
-              slug: p.slug,
-              categoryId: p.category_id || '',
-              categoryName: (p.categories as any)?.name_ar || '',
-              shortDescription: p.short_description || '',
-              fullDescription: p.full_description || '',
-              basePrice: Number(p.base_price),
-              originalPrice: p.original_price ? Number(p.original_price) : undefined,
-              unit: p.unit,
-              sizes: [],
-              mainImage: p.main_image || '',
-              additionalImages: p.additional_images || [],
-              isAvailable: p.is_available,
-              isFeatured: p.is_featured,
-              discountPercentage: p.discount_percentage || undefined,
-            }))
-          );
+        let featuredRows = productsData || [];
+
+        if (featuredRows.length === 0) {
+          const { data: fallbackProducts, error: fallbackError } = await supabase
+            .from('products')
+            .select('*, categories(name_ar)')
+            .eq('is_available', true)
+            .order('created_at', { ascending: false })
+            .limit(8);
+
+          if (fallbackError) throw fallbackError;
+          featuredRows = fallbackProducts || [];
+        }
+
+        if (featuredRows.length > 0) {
+          setFeaturedProducts(featuredRows.map(mapProductRow));
+        } else {
+          setFeaturedProducts([]);
         }
 
         // جلب العروض من database

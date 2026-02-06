@@ -536,7 +536,7 @@ const handleCancelOrder = async (order: Order) => {
             <p className="text-muted-foreground mb-8">
               {user 
                 ? 'لم تقم بأي طلب حتى الآن. ابدأ التسوق واستكشف منتجاتنا المميزة!'
-                : 'قم بتسجيل الدخول لعرض طلباتك، أو ابدأ التسوق الآن!'
+                : 'قم بتسجيل الدخول لعرض طلباتك، أو ابدأ التسوق الآن واطلب عبر الواتساب.'
               }
             </p>
             <Link to="/products" className="btn-primary inline-flex items-center gap-2">

@@ -22,6 +22,7 @@ export interface Product {
   isAvailable: boolean;
   isFeatured: boolean;
   discountPercentage?: number;
+  featuredOrder?: number | null;
 }
 
 // Category Types
@@ -109,6 +110,28 @@ export interface Offer {
   auto_apply: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface OfferUI {
+  id: string;
+  titleAr: string;
+  description: string | null;
+  type: OfferType;
+  discountPercentage: number | null;
+  discountAmount: number | null;
+  minQuantity: number | null;
+  freeQuantity: number | null;
+  minAmount: number | null;
+  applicableProducts: string[] | null;
+  applicableCategories: string[] | null;
+  bannerImage: string | null;
+  startDate: Date | null;
+  endDate: Date | null;
+  isActive: boolean;
+  priority: number;
+  autoApply: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface AppliedOffer {

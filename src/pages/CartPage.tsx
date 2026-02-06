@@ -23,11 +23,16 @@ import { z } from 'zod';
 import { useWhatsAppTracking } from '@/hooks/useWhatsAppTracking';
 
 const checkoutSchema = z.object({
-  customerName: z.string().min(2, 'الاسم الكامل مطلوب').max(100),
-  customerPhone: z.string().min(8, 'رقم الهاتف غير صالح').max(20),
+  customerName: z
+    .string()
+    .min(3, 'الاسم الكامل مطلوب (من 3 حروف)')
+    .max(100),
+  customerPhone: z
+    .string()
+    .regex(/^01\d{9}$/, 'رقم الهاتف يجب أن يكون 11 رقمًا ويبدأ بـ 01'),
   city: z.string().min(2, 'المدينة مطلوبة').max(100),
   area: z.string().min(2, 'المنطقة مطلوبة').max(100),
-  street: z.string().min(2, 'الشارع مطلوب').max(200),
+  street: z.string().min(10, 'العنوان يجب أن يكون أكثر تفصيلًا').max(200),
 });
 
 type AddressForm = {
@@ -48,6 +53,7 @@ const CartPage = () => {
   const [notes, setNotes] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [customerName, setCustomerName] = useState('');
@@ -104,7 +110,6 @@ const CartPage = () => {
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) {
-        setProfile(null);
         setIsProfileLoading(false);
         return;
       }
@@ -275,9 +280,19 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
       street: addressForm.street,
     });
     if (!parsed.success) {
+      const nextErrors: Record<string, string> = {};
+      parsed.error.issues.forEach((issue) => {
+        const key = String(issue.path[0] ?? '');
+        if (key && !nextErrors[key]) {
+          nextErrors[key] = issue.message;
+        }
+      });
+      setFormErrors(nextErrors);
       toast.error(parsed.error.errors[0]?.message || 'يرجى استكمال بيانات العميل');
       return;
     }
+    setFormErrors({});
+
 
     setIsSending(true);
 
@@ -539,20 +554,38 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                     <Label>الاسم الكامل</Label>
                     <Input
                       value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="أدخل اسمك"
-                      disabled={isProfileLoading}
+                      onChange={(e) => {
+                        setCustomerName(e.target.value);
+                        if (formErrors.customerName) {
+                          setFormErrors((prev) => ({ ...prev, customerName: '' }));
+                        }
+                      }}
+                      placeholder="يرجى إدخال الاسم الكامل"
+                      disabled={isProfileLoading && !!user}
+                      aria-invalid={Boolean(formErrors.customerName)}
                     />
+                    {formErrors.customerName && (
+                      <p className="text-xs text-destructive">{formErrors.customerName}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>رقم الهاتف</Label>
                     <Input
                       value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="مثال: 01000000000"
+                      onChange={(e) => {
+                        setCustomerPhone(e.target.value);
+                        if (formErrors.customerPhone) {
+                          setFormErrors((prev) => ({ ...prev, customerPhone: '' }));
+                        }
+                      }}
+                      placeholder="يجب أن لا يقل عن 11 رقم "
                       dir="ltr"
-                      disabled={isProfileLoading}
+                      disabled={isProfileLoading && !!user}
+                      aria-invalid={Boolean(formErrors.customerPhone)}
                     />
+                    {formErrors.customerPhone && (
+                      <p className="text-xs text-destructive">{formErrors.customerPhone}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -582,23 +615,53 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                       <Label>المدينة</Label>
                       <Input
                         value={addressForm.city}
-                        onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                        onChange={(e) => {
+                          setAddressForm({ ...addressForm, city: e.target.value });
+                          if (formErrors.city) {
+                            setFormErrors((prev) => ({ ...prev, city: '' }));
+                          }
+                        }}
+                        aria-invalid={Boolean(formErrors.city)}
                       />
+                      {formErrors.city && (
+                        <p className="text-xs text-destructive">{formErrors.city}</p>
+                      )}
+
                     </div>
                     <div className="space-y-2">
                       <Label>المنطقة</Label>
                       <Input
                         value={addressForm.area}
-                        onChange={(e) => setAddressForm({ ...addressForm, area: e.target.value })}
+                        onChange={(e) => {
+                          setAddressForm({ ...addressForm, area: e.target.value });
+                          if (formErrors.area) {
+                            setFormErrors((prev) => ({ ...prev, area: '' }));
+                          }
+                        }}
+                        aria-invalid={Boolean(formErrors.area)}
                       />
+                      {formErrors.area && (
+                        <p className="text-xs text-destructive">{formErrors.area}</p>
+                      )}
+
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label>الشارع</Label>
                     <Input
                       value={addressForm.street}
-                      onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
+                      onChange={(e) => {
+                        setAddressForm({ ...addressForm, street: e.target.value });
+                        if (formErrors.street) {
+                          setFormErrors((prev) => ({ ...prev, street: '' }));
+                        }
+                      }}
+                      aria-invalid={Boolean(formErrors.street)}
                     />
+                    {formErrors.street && (
+                      <p className="text-xs text-destructive">{formErrors.street}</p>
+                    )}
+
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="space-y-2">

@@ -5,10 +5,10 @@ const DeliveryInformationPage = () => {
     <Layout>
       <section className="bg-muted/30 py-16">
         <div className="section-container">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Delivery Information</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">معلومات التوصيل</h1>
           <p className="text-muted-foreground max-w-2xl">
-            This page contains temporary placeholder information about our delivery service.
-            We will update it with official details soon.
+            تحتوي هذه الصفحة على معلومات مؤقتة حول خدمة التوصيل.
+            سنقوم بتحديثها بالتفاصيل الرسمية قريباً.
           </p>
         </div>
       </section>
@@ -17,31 +17,31 @@ const DeliveryInformationPage = () => {
         <div className="section-container">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-xl font-semibold mb-3">Delivery Areas</h2>
+              <h2 className="text-xl font-semibold mb-3">مناطق التوصيل</h2>
               <p className="text-muted-foreground">
-                We currently deliver within our supported cities and nearby areas.
-                Exact coverage will be confirmed during checkout.
+                نقوم حالياً بالتوصيل داخل المدن المدعومة والمناطق المجاورة.
+                سيتم تأكيد التغطية الدقيقة أثناء الدفع.
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-xl font-semibold mb-3">Estimated Time</h2>
+              <h2 className="text-xl font-semibold mb-3">الوقت المتوقع</h2>
               <p className="text-muted-foreground">
-                Standard delivery takes 1-3 business days depending on location and order volume.
+                يستغرق التوصيل القياسي من 1-3 أيام عمل حسب الموقع وحجم الطلبات.
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-xl font-semibold mb-3">Fees</h2>
+              <h2 className="text-xl font-semibold mb-3">الرسوم</h2>
               <p className="text-muted-foreground">
-                Delivery fees are calculated at checkout and may be discounted for large orders.
+                يتم حساب رسوم التوصيل عند الدفع وقد يتم خصمها للطلبات الكبيرة.
               </p>
             </div>
 
             <div className="bg-white rounded-2xl p-6 shadow-md">
-              <h2 className="text-xl font-semibold mb-3">Order Tracking</h2>
+              <h2 className="text-xl font-semibold mb-3">تتبع الطلب</h2>
               <p className="text-muted-foreground">
-                You can track your order status from your account under My Orders.
+                يمكنك تتبع حالة طلبك من حسابك تحت قسم طلباتي.
               </p>
             </div>
           </div>

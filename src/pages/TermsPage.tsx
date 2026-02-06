@@ -5,10 +5,10 @@ const TermsPage = () => {
     <Layout>
       <section className="bg-muted/30 py-16">
         <div className="section-container">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Terms and Conditions</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">الشروط والأحكام</h1>
           <p className="text-muted-foreground max-w-2xl">
-            This page contains temporary placeholder information about our terms.
-            We will update it with official details soon.
+            تحتوي هذه الصفحة على معلومات مؤقتة حول شروطنا.
+            سنقوم بتحديثها بالتفاصيل الرسمية قريباً.
           </p>
         </div>
       </section>
@@ -17,30 +17,30 @@ const TermsPage = () => {
         <div className="section-container max-w-3xl">
           <div className="bg-white rounded-2xl p-6 shadow-md space-y-4">
             <div>
-              <h2 className="text-xl font-semibold mb-2">Account Use</h2>
+              <h2 className="text-xl font-semibold mb-2">استخدام الحساب</h2>
               <p className="text-muted-foreground">
-                You are responsible for maintaining the confidentiality of your account credentials.
+                أنت مسؤول عن الحفاظ على سرية بيانات اعتماد حسابك.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Orders and Pricing</h2>
+              <h2 className="text-xl font-semibold mb-2">الطلبات والأسعار</h2>
               <p className="text-muted-foreground">
-                Prices and availability may change without notice. Orders are confirmed once processed.
+                قد تتغير الأسعار والتوفر دون إشعار مسبق. يتم تأكيد الطلبات بعد معالجتها.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Product Availability</h2>
+              <h2 className="text-xl font-semibold mb-2">توفر المنتجات</h2>
               <p className="text-muted-foreground">
-                We strive for accuracy, but inventory may be limited. We will contact you if an item is unavailable.
+                نسعى للدقة، لكن المخزون قد يكون محدوداً. سنتواصل معك إذا لم يكن المنتج متوفراً.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Limitation of Liability</h2>
+              <h2 className="text-xl font-semibold mb-2">حدود المسؤولية</h2>
               <p className="text-muted-foreground">
-                Our liability is limited to the value of the order in accordance with applicable laws.
+                مسؤوليتنا محدودة بقيمة الطلب وفقاً للقوانين المعمول بها.
               </p>
             </div>
           </div>

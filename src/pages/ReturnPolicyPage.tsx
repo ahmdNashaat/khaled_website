@@ -5,10 +5,10 @@ const ReturnPolicyPage = () => {
     <Layout>
       <section className="bg-muted/30 py-16">
         <div className="section-container">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">Return Policy</h1>
+          <h1 className="text-3xl md:text-4xl font-bold mb-4">سياسة الإرجاع</h1>
           <p className="text-muted-foreground max-w-2xl">
-            This page contains temporary placeholder information about returns.
-            We will update it with official details soon.
+            تحتوي هذه الصفحة على معلومات مؤقتة حول عمليات الإرجاع.
+            سنقوم بتحديثها بالتفاصيل الرسمية قريباً.
           </p>
         </div>
       </section>
@@ -17,30 +17,30 @@ const ReturnPolicyPage = () => {
         <div className="section-container max-w-3xl">
           <div className="bg-white rounded-2xl p-6 shadow-md space-y-4">
             <div>
-              <h2 className="text-xl font-semibold mb-2">Eligibility Window</h2>
+              <h2 className="text-xl font-semibold mb-2">فترة الاستحقاق</h2>
               <p className="text-muted-foreground">
-                Returns are accepted within 7-14 days of delivery, subject to product condition.
+                يتم قبول المرتجعات خلال 7-14 يوماً من تاريخ التسليم، وفقاً لحالة المنتج.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Condition Requirements</h2>
+              <h2 className="text-xl font-semibold mb-2">شروط الحالة</h2>
               <p className="text-muted-foreground">
-                Items must be unused, unopened, and in original packaging with proof of purchase.
+                يجب أن تكون المنتجات غير مستخدمة، غير مفتوحة، وفي العبوة الأصلية مع إثبات الشراء.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">How to Request a Return</h2>
+              <h2 className="text-xl font-semibold mb-2">كيفية طلب الإرجاع</h2>
               <p className="text-muted-foreground">
-                Contact our support team with your order number and the reason for return.
+                اتصل بفريق الدعم مع رقم طلبك وسبب الإرجاع.
               </p>
             </div>
 
             <div>
-              <h2 className="text-xl font-semibold mb-2">Refunds</h2>
+              <h2 className="text-xl font-semibold mb-2">المبالغ المستردة</h2>
               <p className="text-muted-foreground">
-                Approved refunds are processed to the original payment method within 5-10 business days.
+                يتم معالجة المبالغ المستردة المعتمدة إلى طريقة الدفع الأصلية خلال 5-10 أيام عمل.
               </p>
             </div>
           </div>

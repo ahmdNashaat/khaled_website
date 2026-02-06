@@ -47,6 +47,7 @@ interface Product {
   additional_images: string[] | null;
   is_available: boolean;
   is_featured: boolean;
+  featured_order: number | null;
   discount_percentage: number | null;
   categories?: Category;
 }
@@ -74,6 +75,7 @@ const AdminProducts = () => {
     additional_images: [] as string[],
     is_available: true,
     is_featured: false,
+    featured_order: '',
     discount_percentage: '',
   });
 
@@ -128,6 +130,7 @@ const AdminProducts = () => {
       additional_images: [],
       is_available: true,
       is_featured: false,
+      featured_order: '',
       discount_percentage: '',
     });
     setEditingProduct(null);
@@ -148,6 +151,7 @@ const AdminProducts = () => {
       additional_images: product.additional_images || [],
       is_available: product.is_available,
       is_featured: product.is_featured,
+      featured_order: product.featured_order ? String(product.featured_order) : '',
       discount_percentage: product.discount_percentage ? String(product.discount_percentage) : '',
     });
     setDialogOpen(true);
@@ -171,6 +175,7 @@ const AdminProducts = () => {
         additional_images: formData.additional_images.length > 0 ? formData.additional_images : null,
         is_available: formData.is_available,
         is_featured: formData.is_featured,
+        featured_order: formData.featured_order ? parseInt(formData.featured_order) : null,
         discount_percentage: formData.discount_percentage ? parseInt(formData.discount_percentage) : null,
       };
 
@@ -395,6 +400,20 @@ const AdminProducts = () => {
                   </div>
                 </div>
 
+
+                {formData.is_featured && (
+                  <div className="space-y-2">
+                    <Label htmlFor="featured_order">ترتيب العرض</Label>
+                    <Input
+                      id="featured_order"
+                      type="number"
+                      min="1"
+                      value={formData.featured_order}
+                      onChange={(e) => setFormData({ ...formData, featured_order: e.target.value })}
+                    />
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-4">
                   <Button type="submit" disabled={isSubmitting}>
                     {isSubmitting ? 'جاري الحفظ...' : editingProduct ? 'حفظ التعديلات' : 'إضافة المنتج'}
@@ -440,6 +459,8 @@ const AdminProducts = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-right py-3 px-2 font-medium text-muted-foreground">الصورة</th>
+                      <th className="text-right py-3 px-2 font-medium text-muted-foreground">الترتيب</th>
+
                       <th className="text-right py-3 px-2 font-medium text-muted-foreground">الاسم</th>
                       <th className="text-right py-3 px-2 font-medium text-muted-foreground">القسم</th>
                       <th className="text-right py-3 px-2 font-medium text-muted-foreground">السعر</th>
@@ -468,6 +489,9 @@ const AdminProducts = () => {
                               <Package className="h-5 w-5 text-muted-foreground" />
                             </div>
                           )}
+                        </td>
+                        <td className="py-3 px-2 text-muted-foreground">
+                          {product.is_featured ? (product.featured_order ?? '-') : '-'}
                         </td>
                         <td className="py-3 px-2">
                           <div>

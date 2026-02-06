@@ -1,4 +1,4 @@
-import { Category, Product, DeliveryArea, Offer } from '@/types';
+import { Category, Product, DeliveryArea, OfferUI } from '@/types';
 
 export const categories: Category[] = [
   {
@@ -240,29 +240,48 @@ export const deliveryAreas: DeliveryArea[] = [
   { id: '6', city: 'دكرنس', area: 'جميع المناطق', deliveryFee: 45, deliveryTime: '٣-٥ أيام', isActive: true },
 ];
 
-export const offers: Offer[] = [
+export const offers: OfferUI[] = [
   {
     id: '1',
     titleAr: 'عرض رمضان الكريم',
     description: 'خصم ٢٠٪ على جميع أنواع التمور',
     type: 'percentage',
     discountPercentage: 20,
+    discountAmount: null,
+    minQuantity: null,
+    freeQuantity: null,
+    minAmount: null,
+    applicableProducts: null,
+    applicableCategories: null,
     bannerImage: 'https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=1200&q=80',
     startDate: new Date('2024-03-01'),
     endDate: new Date('2024-04-15'),
     isActive: true,
     priority: 1,
+    autoApply: true,
+    createdAt: new Date('2024-02-20T10:00:00Z'),
+    updatedAt: new Date('2024-02-25T12:00:00Z'),
   },
   {
     id: '2',
     titleAr: 'عرض العسل الذهبي',
     description: 'اشترِ كيلو عسل واحصل على ٢٥٠ جرام مجاناً',
     type: 'bogo',
+    discountPercentage: null,
+    discountAmount: null,
+    minQuantity: 2,
+    freeQuantity: 1,
+    minAmount: null,
+    applicableProducts: null,
+    applicableCategories: null,
     bannerImage: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=1200&q=80',
     startDate: new Date('2024-03-01'),
     endDate: new Date('2024-03-31'),
     isActive: true,
     priority: 2,
+    autoApply: true,
+    createdAt: new Date('2024-02-22T10:00:00Z'),
+    updatedAt: new Date('2024-02-26T12:00:00Z'),
   },
 ];
 
@@ -272,5 +291,6 @@ export const storeSettings = {
   primaryPhone: '+201276166532',
   whatsappNumber: '201276166532',
   messengerUrl: 'https://m.me/khald.hjr.844968',
-  facebookUrl: 'https://www.facebook.com/khald.hjr.844968',
+  facebookUrl: 'https://www.facebook.com/profile.php?id=61587146496330',
 };
+
