@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -199,9 +199,9 @@ const CartPage = () => {
   const formatOrderMessage = (orderNumber?: string) => {
     const productLines = items
       .map((item) => {
-        const price = item.selectedSize?.price || item.product.basePrice;
+        const price = item.selectedVariant?.price || item.product.basePrice;
         const lineTotal = price * item.quantity;
-        return `- ${item.product.nameAr} - ${item.selectedSize?.label || item.product.unit} × ${item.quantity} = ${lineTotal} جنيه`;
+        return `- ${item.product.nameAr} - ${item.selectedVariant?.label || item.product.unit} × ${item.quantity} = ${lineTotal} جنيه`;
       })
       .join('\n');
 
@@ -209,34 +209,34 @@ const CartPage = () => {
     cartCalculation.appliedOffers.forEach(applied => {
       if (applied.freeItems && applied.freeItems.length > 0) {
         applied.freeItems.forEach(freeItem => {
-          freeItemsText += `\n🎁 ${freeItem.product.nameAr} × ${freeItem.quantity} (مجاناً!)`;
+          freeItemsText += `\nðŸŽ ${freeItem.product.nameAr} × ${freeItem.quantity} (مجاناً!)`;
         });
       }
     });
 
     const offersText = cartCalculation.appliedOffers.length > 0
-      ? '\n\n*🎉 العروض المطبقة:*\n' + cartCalculation.appliedOffers.map(a => `- ${a.message}`).join('\n')
+      ? '\n\n*ðŸŽ‰ العروض المطبقة:*\n' + cartCalculation.appliedOffers.map(a => `- ${a.message}`).join('\n')
       : '';
 
     const message = `
-🛒 *طلب جديد من متجر مذاق*
-${orderNumber ? `\n*🔖 رقم الطلب:* ${formatOrderNumber(orderNumber)}` : ''}
+ðŸ›’ *طلب جديد من متجر مذاق*
+${orderNumber ? `\n*ðŸ”– رقم الطلب:* ${formatOrderNumber(orderNumber)}` : ''}
 
-*📦 المنتجات:*
+*ðŸ“¦ المنتجات:*
 ${productLines}${freeItemsText}
 
-*📍 منطقة التوصيل:* ${deliveryArea ? `${deliveryArea.city} - ${deliveryArea.area}` : 'غير محدد'}
-*🚚 رسوم التوصيل:* ${cartCalculation.deliveryFee} جنيه${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? ' (مجاني 🎉)' : ''}
+*ðŸ“ منطقة التوصيل:* ${deliveryArea ? `${deliveryArea.city} - ${deliveryArea.area}` : 'غير محدد'}
+*ðŸšš رسوم التوصيل:* ${cartCalculation.deliveryFee} جنيه${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? ' (مجاني ðŸŽ‰)' : ''}
 
-*💰 المجموع الفرعي:* ${cartCalculation.subtotal.toFixed(2)} جنيه
-${cartCalculation.totalDiscount > 0 ? `*💚 إجمالي الخصم:* ${cartCalculation.totalDiscount.toFixed(2)} جنيه` : ''}
-*💵 الإجمالي النهائي:* ${cartCalculation.total.toFixed(2)} جنيه
+*ðŸ’° المجموع الفرعي:* ${cartCalculation.subtotal.toFixed(2)} جنيه
+${cartCalculation.totalDiscount > 0 ? `*ðŸ’š إجمالي الخصم:* ${cartCalculation.totalDiscount.toFixed(2)} جنيه` : ''}
+*ðŸ’µ الإجمالي النهائي:* ${cartCalculation.total.toFixed(2)} جنيه
 ${cartCalculation.savings > 0 ? `\n✨ *وفرت:* ${cartCalculation.savings.toFixed(2)} جنيه` : ''}
 
-*💳 طريقة الدفع:* الدفع عند الاستلام
+*ðŸ’³ طريقة الدفع:* الدفع عند الاستلام
 ${offersText}
 
-${notes ? `\n*📝 ملاحظات:* ${notes}` : ''}
+${notes ? `\n*ðŸ“ ملاحظات:* ${notes}` : ''}
 
 ━━━━━━━━━━━━━━━━━━━━
 _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
@@ -398,12 +398,12 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
           <div className="lg:col-span-2 space-y-4">
             <AnimatePresence>
               {items.map((item) => {
-                const price = item.selectedSize?.price || item.product.basePrice;
+                const price = item.selectedVariant?.price || item.product.basePrice;
                 const lineTotal = price * item.quantity;
 
                 return (
                   <motion.div
-                    key={`${item.product.id}-${item.selectedSize?.id}`}
+                    key={`${item.product.id}-${item.selectedVariant?.id}`}
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -428,13 +428,13 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                         {item.product.categoryName}
                       </p>
                       <p className="text-sm text-primary-light mt-1">
-                        {item.selectedSize?.label || item.product.unit} - {price} جنيه
+                        {item.selectedVariant?.label || item.product.unit} - {price} جنيه
                       </p>
 
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex items-center border rounded-lg overflow-hidden">
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedSize?.id)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariant?.id)}
                             disabled={item.quantity <= 1}
                             className="p-2 hover:bg-muted disabled:opacity-50 transition-colors"
                           >
@@ -442,7 +442,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                           </button>
                           <span className="px-4 font-medium">{item.quantity}</span>
                           <button
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedSize?.id)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedVariant?.id)}
                             className="p-2 hover:bg-muted transition-colors"
                           >
                             <Plus className="w-4 h-4" />
@@ -454,7 +454,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                             {lineTotal.toFixed(2)} جنيه
                           </span>
                           <button
-                            onClick={() => removeItem(item.product.id, item.selectedSize?.id)}
+                            onClick={() => removeItem(item.product.id, item.selectedVariant?.id)}
                             className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                           >
                             <Trash2 className="w-5 h-5" />
@@ -476,7 +476,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
               >
                 <div className="flex items-center gap-2 mb-4">
                   <Gift className="w-6 h-6 text-purple-600" />
-                  <h3 className="text-lg font-bold text-purple-900">🎉 منتجات مجانية!</h3>
+                  <h3 className="text-lg font-bold text-purple-900">ðŸŽ‰ منتجات مجانية!</h3>
                 </div>
                 <div className="space-y-3">
                   {cartCalculation.appliedOffers.map((applied, idx) =>
@@ -491,7 +491,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                           <p className="font-semibold text-purple-900">{freeItem.product.nameAr}</p>
                           <p className="text-sm text-purple-600">الكمية: {freeItem.quantity}</p>
                         </div>
-                        <span className="text-2xl">🎁</span>
+                        <span className="text-2xl">ðŸŽ</span>
                       </div>
                     ))
                   )}
@@ -718,7 +718,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
                   {originalDeliveryFee > 0 && cartCalculation.deliveryFee === 0 ? (
                     <>
                       <span className="line-through text-muted-foreground">{originalDeliveryFee} جنيه</span>
-                      <span className="text-green-600 font-bold mr-2">مجاني 🎉</span>
+                      <span className="text-green-600 font-bold mr-2">مجاني ðŸŽ‰</span>
                     </>
                   ) : (
                     `${cartCalculation.deliveryFee} جنيه`
@@ -768,7 +768,7 @@ _تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
               </button>
 
               <p className="text-xs text-muted-foreground text-center mt-4">
-                💳 الدفع عند الاستلام
+                ðŸ’³ الدفع عند الاستلام
               </p>
             </div>
           </div>

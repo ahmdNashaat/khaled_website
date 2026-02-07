@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+﻿import { supabase } from '@/integrations/supabase/client';
 import { CartItem, DeliveryArea, AppliedOffer } from '@/types';
 import { generateOrderNumber, formatOrderNumber } from '@/utils/orderNumber';
 
@@ -92,12 +92,13 @@ export async function saveOrderToSupabase(input: SaveOrderInput): Promise<{ orde
 
   // ─── 2. Insert order_items ───────────────────────────────────────────────
   const itemRows = items.map((item) => {
-    const unitPrice = item.selectedSize?.price ?? item.product.basePrice;
+    const unitPrice = item.selectedVariant?.price ?? item.product.basePrice;
     return {
       order_id: orderId,
       product_id: item.product.id,
       product_name: item.product.nameAr,
-      size_label: item.selectedSize?.label ?? null,
+      size_label: item.selectedVariant?.label ?? null,
+      variant_id: item.selectedVariant?.id ?? null,
       quantity: item.quantity,
       unit_price: unitPrice,
       total_price: unitPrice * item.quantity,
@@ -150,10 +151,10 @@ export function buildWhatsAppMessage(input: {
   
   message += `◆ المنتجات:\n`;
   items.forEach((item, index) => {
-    const size = item.selectedSize?.label || '';
+    const size = item.selectedVariant?.label || '';
     const sizeText = size ? ` - ${size}` : '';
     message += `${index + 1}. ${item.product.nameAr}${sizeText} × ${item.quantity} = ${(
-      (item.selectedSize?.price || item.product.basePrice) * item.quantity
+      (item.selectedVariant?.price || item.product.basePrice) * item.quantity
     ).toFixed(2)} جنيه\n`;
   });
 

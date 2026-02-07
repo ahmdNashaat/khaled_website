@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, MapPin, ShoppingBag, ArrowRight, MessageCircle, CheckCircle2 } from 'lucide-react';
@@ -54,7 +54,7 @@ const OrderConfirmationPage = () => {
                 <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-green-100 flex items-center justify-center">
                   <CheckCircle2 className="w-14 h-14 text-green-600" />
                 </div>
-                <h1 className="text-3xl font-bold text-green-700 mb-2">تم إرسال الطلب بنجاح! 🎉</h1>
+                <h1 className="text-3xl font-bold text-green-700 mb-2">تم إرسال الطلب بنجاح! ðŸŽ‰</h1>
                 <p className="text-muted-foreground">
                   الطلب اتبعت على واتساب، انتظر ردّ البائع للتأكيد النهائي.
                 </p>
@@ -69,7 +69,7 @@ const OrderConfirmationPage = () => {
                   كان يجب أن يفتح واتساب تلقائياً. لو مفتحش اضغط الزر أبيه:
                 </p>
                 <a
-                  href={`https://wa.me/201276166532?text=${encodeURIComponent(`🛒 طلب جديد من متجر مذاق – رقم الطلب: ${displayId}`)}`}
+                  href={`https://wa.me/201276166532?text=${encodeURIComponent(`ðŸ›’ طلب جديد من متجر مذاق – رقم الطلب: ${displayId}`)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn-primary inline-flex items-center gap-2"
@@ -119,7 +119,7 @@ const OrderConfirmationPage = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate">{item.product.nameAr}</p>
                     <p className="text-sm text-muted-foreground">
-                      {item.selectedSize?.label || item.product.unit} × {item.quantity}
+                      {item.selectedVariant?.label || item.product.unit} × {item.quantity}
                     </p>
                   </div>
                   <p className="font-bold text-primary shrink-0">{item.lineTotal.toFixed(2)} جنيه</p>

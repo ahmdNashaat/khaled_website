@@ -57,7 +57,7 @@ const calculatePercentageDiscount = (
   // حساب الخصم على المنتجات المؤهلة فقط
   items.forEach(item => {
     if (isOfferApplicableToProduct(offer, item.product.id, item.product.categoryId)) {
-      const itemPrice = item.selectedSize?.price || item.product.basePrice;
+      const itemPrice = item.selectedVariant?.price || item.product.basePrice;
       const itemTotal = itemPrice * item.quantity;
       totalDiscount += (itemTotal * offer.discount_percentage) / 100;
     }
@@ -114,7 +114,7 @@ const calculateBuyXGetY = (
       
       if (completeSets > 0) {
         const freeQty = completeSets * offer.free_quantity;
-        const itemPrice = item.selectedSize?.price || item.product.basePrice;
+        const itemPrice = item.selectedVariant?.price || item.product.basePrice;
         
         freeItems.push({
           product: item.product,
@@ -152,7 +152,7 @@ const calculateBOGO = (
       const freeQty = Math.floor(item.quantity / 2);
       
       if (freeQty > 0) {
-        const itemPrice = item.selectedSize?.price || item.product.basePrice;
+        const itemPrice = item.selectedVariant?.price || item.product.basePrice;
         
         freeItems.push({
           product: item.product,
@@ -254,7 +254,7 @@ export const calculateCart = (
 ): CartCalculation => {
   // حساب المجموع الفرعي
   const subtotal = items.reduce((total, item) => {
-    const price = item.selectedSize?.price || item.product.basePrice;
+    const price = item.selectedVariant?.price || item.product.basePrice;
     return total + price * item.quantity;
   }, 0);
   

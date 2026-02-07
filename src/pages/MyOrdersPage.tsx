@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingBag, ArrowRight, Clock, MapPin, MessageCircle, RefreshCw, Ban, Eye, Trash2, AlertTriangle } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { useOrdersStore } from '@/store/ordersStore';
 import { supabase } from '@/integrations/supabase/client';
-import { Order, OrderStatus, Product, ProductSize } from '@/types';
+import { Order, OrderStatus, Product, ProductVariant } from '@/types';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -89,7 +89,7 @@ const toLocalOrderFromDb = (
       basePrice: Number(productRow?.base_price ?? item.unit_price ?? 0),
       originalPrice: productRow?.original_price ? Number(productRow.original_price) : undefined,
       unit: productRow?.unit || '',
-      sizes: [],
+      variants: [],
       mainImage: productRow?.main_image || '/placeholder.svg',
       additionalImages: productRow?.additional_images || [],
       isAvailable: productRow?.is_available ?? true,
@@ -97,7 +97,7 @@ const toLocalOrderFromDb = (
       discountPercentage: productRow?.discount_percentage || undefined,
     };
 
-    const selectedSize: ProductSize | undefined = item.size_label
+    const selectedVariant: ProductVariant | undefined = item.size_label
       ? {
           id: `size-${item.id}`,
           label: item.size_label,
@@ -108,7 +108,7 @@ const toLocalOrderFromDb = (
     return {
       product,
       quantity: Number(item.quantity || 0),
-      selectedSize,
+      selectedVariant,
       lineTotal: Number(item.total_price ?? (Number(item.unit_price ?? product.basePrice) * Number(item.quantity || 0))),
     };
   });
@@ -581,7 +581,7 @@ const handleCancelOrder = async (order: Order) => {
         {!user && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              💡 <strong>تنبيه:</strong> أنت تتصفح كزائر. طلباتك محفوظة محلياً فقط. 
+              ðŸ’¡ <strong>تنبيه:</strong> أنت تتصفح كزائر. طلباتك محفوظة محلياً فقط. 
               <Link to="/auth" className="text-primary font-semibold underline mr-1">
                 سجل دخول
               </Link>
@@ -635,7 +635,7 @@ const handleCancelOrder = async (order: Order) => {
                         <div className="flex-1">
                           <p className="font-semibold">{item.product.nameAr}</p>
                           <p className="text-sm text-muted-foreground">
-                            {item.selectedSize?.label || item.product.unit} × {item.quantity}
+                            {item.selectedVariant?.label || item.product.unit} × {item.quantity}
                           </p>
                         </div>
                         <p className="font-bold text-primary">{item.lineTotal.toFixed(2)} جنيه</p>

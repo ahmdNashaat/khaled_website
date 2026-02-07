@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import CategoryCard from '@/components/CategoryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, Category } from '@/types';
+import { mapProductRow } from '@/utils/mapProduct';
 
 // نوع بيانات للعروض (متطابق مع database schema)
 interface Offer {
@@ -133,29 +134,9 @@ const HomePage = () => {
         }
 
         // ??? ???????? ???????
-        const mapProductRow = (p: any) => ({
-          id: p.id,
-          nameAr: p.name_ar,
-          slug: p.slug,
-          categoryId: p.category_id || '',
-          categoryName: (p.categories as any)?.name_ar || '',
-          shortDescription: p.short_description || '',
-          fullDescription: p.full_description || '',
-          basePrice: Number(p.base_price),
-          originalPrice: p.original_price ? Number(p.original_price) : undefined,
-          unit: p.unit,
-          sizes: [],
-          mainImage: p.main_image || '',
-          additionalImages: p.additional_images || [],
-          isAvailable: p.is_available,
-          isFeatured: p.is_featured,
-          discountPercentage: p.discount_percentage || undefined,
-          featuredOrder: p.featured_order ?? null,
-        });
-
         const { data: productsData, error: productsError } = await supabase
           .from('products')
-          .select('*, categories(name_ar)')
+          .select('*, categories(name_ar), product_variants(*)')
           .eq('is_available', true)
           .eq('is_featured', true)
           .order('featured_order', { ascending: true })
@@ -169,7 +150,7 @@ const HomePage = () => {
         if (featuredRows.length === 0) {
           const { data: fallbackProducts, error: fallbackError } = await supabase
             .from('products')
-            .select('*, categories(name_ar)')
+            .select('*, categories(name_ar), product_variants(*)')
             .eq('is_available', true)
             .order('created_at', { ascending: false })
             .limit(8);

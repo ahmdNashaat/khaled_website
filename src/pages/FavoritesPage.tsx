@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { Product } from '@/types';
+import { mapProductRow } from '@/utils/mapProduct';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
@@ -28,30 +29,13 @@ const FavoritesPage = () => {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select('*, categories(name_ar)')
+          .select('*, categories(name_ar), product_variants(*)')
           .in('id', favoriteIds);
 
         if (error) throw error;
 
         if (data) {
-          const mapped = data.map((p) => ({
-            id: p.id,
-            nameAr: p.name_ar,
-            slug: p.slug,
-            categoryId: p.category_id || '',
-            categoryName: (p.categories as any)?.name_ar || '',
-            shortDescription: p.short_description || '',
-            fullDescription: p.full_description || '',
-            basePrice: Number(p.base_price),
-            originalPrice: p.original_price ? Number(p.original_price) : undefined,
-            unit: p.unit,
-            sizes: [],
-            mainImage: p.main_image || '',
-            additionalImages: p.additional_images || [],
-            isAvailable: p.is_available,
-            isFeatured: p.is_featured,
-            discountPercentage: p.discount_percentage || undefined,
-          }));
+          const mapped = data.map(mapProductRow);
 
           const orderMap = new Map(favoriteIds.map((id, index) => [id, index]));
           mapped.sort((a, b) => (orderMap.get(a.id) ?? 0) - (orderMap.get(b.id) ?? 0));

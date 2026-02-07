@@ -1,9 +1,19 @@
 // Product Types
-export interface ProductSize {
+export interface ProductVariant {
   id: string;
   label: string;
   price: number;
+  originalPrice?: number;
+  weightGrams?: number | null;
+  stockQty?: number | null;
+  lowStockThreshold?: number | null;
+  isDefault?: boolean;
+  isActive?: boolean;
+  sortOrder?: number;
 }
+
+// Backward compatibility
+export type ProductSize = ProductVariant;
 
 export interface Product {
   id: string;
@@ -16,7 +26,7 @@ export interface Product {
   basePrice: number;
   originalPrice?: number;
   unit: string;
-  sizes: ProductSize[];
+  variants: ProductVariant[];
   mainImage: string;
   additionalImages: string[];
   isAvailable: boolean;
@@ -42,7 +52,7 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
-  selectedSize?: ProductSize;
+  selectedVariant?: ProductVariant;
 }
 
 // Delivery Area Types
@@ -185,7 +195,7 @@ export type OrderContactMethod = 'whatsapp' | 'messenger';
 export interface OrderItem {
   product: Product;
   quantity: number;
-  selectedSize?: ProductSize;
+  selectedVariant?: ProductVariant;
   lineTotal: number;
 }
 
@@ -231,6 +241,7 @@ export interface AdminOrderItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  variant_id?: string | null;
 }
 
 export interface AdminOrder {

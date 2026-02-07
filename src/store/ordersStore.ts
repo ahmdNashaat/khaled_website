@@ -55,9 +55,9 @@ export const useOrdersStore = create<OrdersState>()(
           items: input.items.map((item) => ({
             product: item.product,
             quantity: item.quantity,
-            selectedSize: item.selectedSize,
+            selectedVariant: item.selectedVariant,
             lineTotal:
-              (item.selectedSize?.price || item.product.basePrice) * item.quantity,
+              (item.selectedVariant?.price || item.product.basePrice) * item.quantity,
           })),
           deliveryArea: input.deliveryArea
             ? { city: input.deliveryArea.city, area: input.deliveryArea.area }

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Share2, ArrowRight, Check, Truck, Heart } from 'lucide-react';
@@ -8,7 +8,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { toast } from 'sonner';
-import { Product, ProductSize } from '@/types';
+import { Product, ProductVariant } from '@/types';
+import { mapProductRow } from '@/utils/mapProduct';
+import {
+  getDefaultVariant,
+  getVariantOriginalPrice,
+  getVariantPrice,
+  isVariantInStock,
+  isVariantLowStock,
+} from '@/utils/productVariants';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const ProductDetailPage = () => {
   const { id } = useParams();
@@ -17,10 +32,10 @@ const ProductDetailPage = () => {
   const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
   const isFavorite = useFavoritesStore((state) => (product ? state.isFavorite(product.id) : false));
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [sizes, setSizes] = useState<ProductSize[]>([]);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const [selectedSize, setSelectedSize] = useState<ProductSize | undefined>();
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   
@@ -34,83 +49,34 @@ const ProductDetailPage = () => {
       try {
         const { data: productData, error } = await supabase
           .from('products')
-          .select('*, categories(name_ar)')
+          .select('*, categories(name_ar), product_variants(*)')
           .eq('id', id)
           .maybeSingle();
 
         if (error) throw error;
 
         if (productData) {
-          const mappedProduct: Product = {
-            id: productData.id,
-            nameAr: productData.name_ar,
-            slug: productData.slug,
-            categoryId: productData.category_id || '',
-            categoryName: (productData.categories as any)?.name_ar || '',
-            shortDescription: productData.short_description || '',
-            fullDescription: productData.full_description || '',
-            basePrice: Number(productData.base_price),
-            originalPrice: productData.original_price ? Number(productData.original_price) : undefined,
-            unit: productData.unit,
-            sizes: [],
-            mainImage: productData.main_image || '',
-            additionalImages: productData.additional_images || [],
-            isAvailable: productData.is_available,
-            isFeatured: productData.is_featured,
-            discountPercentage: productData.discount_percentage || undefined,
-          };
+          const mappedProduct = mapProductRow(productData);
           setProduct(mappedProduct);
           // إضافة: تعيين الصورة الأولى كصورة معروضة
           setSelectedImage(mappedProduct.mainImage);
 
-          // Fetch sizes
-          const { data: sizesData } = await supabase
-            .from('product_sizes')
-            .select('*')
-            .eq('product_id', id)
-            .order('price');
-
-          if (sizesData && sizesData.length > 0) {
-            const mappedSizes = sizesData.map((s) => ({
-              id: s.id,
-              label: s.label,
-              price: Number(s.price),
-            }));
-            setSizes(mappedSizes);
-            setSelectedSize(mappedSizes[0]);
-          }
+          const activeVariants = mappedProduct.variants.filter((variant) => variant.isActive !== false);
+          setVariants(activeVariants);
+          setSelectedVariant(getDefaultVariant(activeVariants));
 
           // Fetch related products
           if (productData.category_id) {
             const { data: relatedData } = await supabase
               .from('products')
-              .select('*, categories(name_ar)')
+              .select('*, categories(name_ar), product_variants(*)')
               .eq('category_id', productData.category_id)
               .eq('is_available', true)
               .neq('id', id)
               .limit(4);
 
             if (relatedData) {
-              setRelatedProducts(
-                relatedData.map((p) => ({
-                  id: p.id,
-                  nameAr: p.name_ar,
-                  slug: p.slug,
-                  categoryId: p.category_id || '',
-                  categoryName: (p.categories as any)?.name_ar || '',
-                  shortDescription: p.short_description || '',
-                  fullDescription: p.full_description || '',
-                  basePrice: Number(p.base_price),
-                  originalPrice: p.original_price ? Number(p.original_price) : undefined,
-                  unit: p.unit,
-                  sizes: [],
-                  mainImage: p.main_image || '',
-                  additionalImages: p.additional_images || [],
-                  isAvailable: p.is_available,
-                  isFeatured: p.is_featured,
-                  discountPercentage: p.discount_percentage || undefined,
-                }))
-              );
+              setRelatedProducts(relatedData.map(mapProductRow));
             }
           }
         }
@@ -149,7 +115,7 @@ const ProductDetailPage = () => {
     return (
       <Layout>
         <div className="section-container py-20 text-center">
-          <div className="text-6xl mb-4">🔍</div>
+          <div className="text-6xl mb-4">ðŸ”</div>
           <h1 className="text-2xl font-bold mb-4">المنتج غير موجود</h1>
           <Link to="/products" className="btn-primary inline-flex items-center gap-2">
             <ArrowRight className="w-5 h-5" />
@@ -160,16 +126,18 @@ const ProductDetailPage = () => {
     );
   }
 
-  const currentPrice = selectedSize?.price || product.basePrice;
+  const currentPrice = getVariantPrice(product, selectedVariant);
+  const currentOriginalPrice = getVariantOriginalPrice(product, selectedVariant);
   const totalPrice = currentPrice * quantity;
+  const canAddToCart = product.isAvailable && (variants.length === 0 || isVariantInStock(selectedVariant));
 
   // إضافة: دمج جميع الصور (الرئيسية + الإضافية)
   const allImages = [product.mainImage, ...(product.additionalImages || [])].filter(Boolean);
 
   const handleAddToCart = () => {
-    addItem(product, quantity, selectedSize);
+    addItem(product, quantity, selectedVariant);
     toast.success('تمت الإضافة إلى السلة', {
-      description: `${product.nameAr} - ${selectedSize?.label || product.unit}`,
+      description: `${product.nameAr} - ${selectedVariant?.label || product.unit}`,
     });
   };
 
@@ -284,9 +252,9 @@ const ProductDetailPage = () => {
               <span className="text-4xl font-bold text-primary">
                 {currentPrice} جنيه
               </span>
-              {product.originalPrice && (
+              {currentOriginalPrice && (
                 <span className="text-xl text-muted-foreground line-through">
-                  {product.originalPrice} جنيه
+                  {currentOriginalPrice} جنيه
                 </span>
               )}
             </div>
@@ -306,26 +274,38 @@ const ProductDetailPage = () => {
               {product.shortDescription}
             </p>
 
-            {/* Size Selector */}
-            {sizes.length > 0 && (
+            {/* Weight Selector */}
+            {variants.length > 0 && (
               <div>
-                <h3 className="font-semibold mb-3">الحجم</h3>
-                <div className="flex flex-wrap gap-3">
-                  {sizes.map((size) => (
-                    <button
-                      key={size.id}
-                      onClick={() => setSelectedSize(size)}
-                      className={`px-4 py-2 rounded-xl border-2 transition-all ${
-                        selectedSize?.id === size.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-primary'
-                      }`}
-                    >
-                      <span className="font-medium">{size.label}</span>
-                      <span className="text-sm opacity-70 mr-2">({size.price} جنيه)</span>
-                    </button>
-                  ))}
-                </div>
+                <h3 className="font-semibold mb-3"> يمكنك إختيار وزن أقل من كيلو </h3>
+                <Select
+                  value={selectedVariant?.id}
+                  onValueChange={(value) =>
+                    setSelectedVariant(variants.find((variant) => variant.id === value))
+                  }
+                >
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue placeholder="اختر الوزن" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {variants.map((variant) => {
+                      const inStock = isVariantInStock(variant);
+                      return (
+                        <SelectItem key={variant.id} value={variant.id} disabled={!inStock}>
+                          {variant.label}  {!inStock ? ' (غير متوفر)' : ''}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+                {selectedVariant && isVariantLowStock(selectedVariant) && isVariantInStock(selectedVariant) && (
+                  <p className="text-sm text-destructive mt-2">
+                    مخزون منخفض — تبقى {selectedVariant.stockQty} فقط
+                  </p>
+                )}
+                {selectedVariant && !isVariantInStock(selectedVariant) && (
+                  <p className="text-sm text-destructive mt-2">هذا الوزن غير متوفر حالياً</p>
+                )}
               </div>
             )}
 
@@ -358,7 +338,7 @@ const ProductDetailPage = () => {
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <button
                 onClick={handleAddToCart}
-                disabled={!product.isAvailable}
+                disabled={!canAddToCart}
                 className="btn-primary flex-1 flex items-center justify-center gap-2 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ShoppingCart className="w-5 h-5" />

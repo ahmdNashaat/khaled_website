@@ -7,6 +7,7 @@ import ProductCard from '@/components/ProductCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { Product, Category } from '@/types';
+import { mapProductRow } from '@/utils/mapProduct';
 
 const ProductsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +36,7 @@ const ProductsPage = () => {
         const [productsRes, categoriesRes] = await Promise.all([
           supabase
             .from('products')
-            .select('*, categories(name_ar)')
+            .select('*, categories(name_ar), product_variants(*)')
             .eq('is_available', true)
             .order('created_at', { ascending: false }),
           supabase
@@ -46,26 +47,7 @@ const ProductsPage = () => {
         ]);
 
         if (productsRes.data) {
-          setProducts(
-            productsRes.data.map((p) => ({
-              id: p.id,
-              nameAr: p.name_ar,
-              slug: p.slug,
-              categoryId: p.category_id || '',
-              categoryName: (p.categories as any)?.name_ar || '',
-              shortDescription: p.short_description || '',
-              fullDescription: p.full_description || '',
-              basePrice: Number(p.base_price),
-              originalPrice: p.original_price ? Number(p.original_price) : undefined,
-              unit: p.unit,
-              sizes: [],
-              mainImage: p.main_image || '',
-              additionalImages: p.additional_images || [],
-              isAvailable: p.is_available,
-              isFeatured: p.is_featured,
-              discountPercentage: p.discount_percentage || undefined,
-            }))
-          );
+          setProducts(productsRes.data.map(mapProductRow));
         }
 
         if (categoriesRes.data) {
@@ -115,7 +97,7 @@ const ProductsPage = () => {
       if (offer) {
         let query = supabase
           .from('products')
-          .select('*, categories(name_ar)')
+          .select('*, categories(name_ar), product_variants(*)')
           .eq('is_available', true);
 
         // Filter by applicable products or categories
@@ -130,26 +112,7 @@ const ProductsPage = () => {
         if (productsError) throw productsError;
 
         if (productsData) {
-          setProducts(
-            productsData.map((p) => ({
-              id: p.id,
-              nameAr: p.name_ar,
-              slug: p.slug,
-              categoryId: p.category_id || '',
-              categoryName: (p.categories as any)?.name_ar || '',
-              shortDescription: p.short_description || '',
-              fullDescription: p.full_description || '',
-              basePrice: Number(p.base_price),
-              originalPrice: p.original_price ? Number(p.original_price) : undefined,
-              unit: p.unit,
-              sizes: [],
-              mainImage: p.main_image || '',
-              additionalImages: p.additional_images || [],
-              isAvailable: p.is_available,
-              isFeatured: p.is_featured,
-              discountPercentage: p.discount_percentage || undefined,
-            }))
-          );
+          setProducts(productsData.map(mapProductRow));
         }
       }
     } catch (error) {

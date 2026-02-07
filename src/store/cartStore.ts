@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { CartItem, Product, ProductSize } from '@/types';
+import { CartItem, Product, ProductVariant } from '@/types';
 
 interface CartState {
   items: CartItem[];
-  addItem: (product: Product, quantity: number, selectedSize?: ProductSize) => void;
-  removeItem: (productId: string, sizeId?: string) => void;
-  updateQuantity: (productId: string, quantity: number, sizeId?: string) => void;
+  addItem: (product: Product, quantity: number, selectedVariant?: ProductVariant) => void;
+  removeItem: (productId: string, variantId?: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string) => void;
   clearCart: () => void;
   getTotal: () => number;
   getItemCount: () => number;
@@ -17,12 +17,12 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       
-      addItem: (product, quantity, selectedSize) => {
+      addItem: (product, quantity, selectedVariant) => {
         set((state) => {
           const existingIndex = state.items.findIndex(
             (item) => 
               item.product.id === product.id && 
-              item.selectedSize?.id === selectedSize?.id
+              item.selectedVariant?.id === selectedVariant?.id
           );
           
           if (existingIndex > -1) {
@@ -32,24 +32,24 @@ export const useCartStore = create<CartState>()(
           }
           
           return {
-            items: [...state.items, { product, quantity, selectedSize }],
+            items: [...state.items, { product, quantity, selectedVariant }],
           };
         });
       },
       
-      removeItem: (productId, sizeId) => {
+      removeItem: (productId, variantId) => {
         set((state) => ({
           items: state.items.filter(
             (item) => 
-              !(item.product.id === productId && item.selectedSize?.id === sizeId)
+              !(item.product.id === productId && item.selectedVariant?.id === variantId)
           ),
         }));
       },
       
-      updateQuantity: (productId, quantity, sizeId) => {
+      updateQuantity: (productId, quantity, variantId) => {
         set((state) => ({
           items: state.items.map((item) =>
-            item.product.id === productId && item.selectedSize?.id === sizeId
+            item.product.id === productId && item.selectedVariant?.id === variantId
               ? { ...item, quantity: Math.max(1, quantity) }
               : item
           ),
@@ -61,7 +61,7 @@ export const useCartStore = create<CartState>()(
       getTotal: () => {
         const { items } = get();
         return items.reduce((total, item) => {
-          const price = item.selectedSize?.price || item.product.basePrice;
+          const price = item.selectedVariant?.price || item.product.basePrice;
           return total + price * item.quantity;
         }, 0);
       },

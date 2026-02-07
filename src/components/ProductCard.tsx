@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Eye, Heart, Star } from 'lucide-react';
 import { Product } from '@/types';
 import { useCartStore } from '@/store/cartStore';
 import { useFavoritesStore } from '@/store/favoritesStore';
 import { toast } from 'sonner';
+import { getDefaultVariant, isVariantInStock } from '@/utils/productVariants';
 
 interface ProductCardProps {
   product: Product;
@@ -15,11 +16,17 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const addItem = useCartStore((state) => state.addItem);
   const isLiked = useFavoritesStore((state) => state.isFavorite(product.id));
   const toggleFavorite = useFavoritesStore((state) => state.toggleFavorite);
+  const activeVariants = product.variants.filter((variant) => variant.isActive !== false);
+  const defaultVariant = getDefaultVariant(activeVariants);
+  const purchasableVariant =
+    defaultVariant && isVariantInStock(defaultVariant)
+      ? defaultVariant
+      : activeVariants.find((variant) => isVariantInStock(variant));
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem(product, 1, product.sizes[0]);
+    addItem(product, 1, purchasableVariant);
     toast.success('تمت الإضافة إلى السلة', {
       description: product.nameAr,
       duration: 2000,
@@ -191,20 +198,20 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           </div>
 
           {/* SIZES - COMPACT */}
-          {product.sizes.length > 1 && (
+          {activeVariants.length > 1 && (
             <div className="flex items-center gap-1 flex-wrap pt-0.5">
               <span className="text-xs text-muted-foreground">المتوفر:</span>
-              {product.sizes.slice(0, 2).map((size) => (
+              {activeVariants.slice(0, 2).map((variant) => (
                 <span
-                  key={size.id}
+                  key={variant.id}
                   className="text-xs bg-muted px-1.5 py-0.5 rounded text-foreground"
                 >
-                  {size.label}
+                  {variant.label}
                 </span>
               ))}
-              {product.sizes.length > 2 && (
+              {activeVariants.length > 2 && (
                 <span className="text-xs text-primary font-semibold">
-                  +{product.sizes.length - 2}
+                  +{activeVariants.length - 2}
                 </span>
               )}
             </div>

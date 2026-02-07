@@ -1,4 +1,4 @@
-import { Category, Product, DeliveryArea, OfferUI } from '@/types';
+﻿import { Category, Product, DeliveryArea, OfferUI } from '@/types';
 
 export const categories: Category[] = [
   {
@@ -6,7 +6,7 @@ export const categories: Category[] = [
     nameAr: 'التمور',
     slug: 'dates',
     description: 'أجود أنواع التمور الطبيعية',
-    icon: '🌴',
+    icon: 'ðŸŒ´',
     isActive: true,
     order: 1,
     productsCount: 12,
@@ -16,7 +16,7 @@ export const categories: Category[] = [
     nameAr: 'العسل الطبيعي',
     slug: 'honey',
     description: 'عسل نحل طبيعي 100%',
-    icon: '🍯',
+    icon: 'ðŸ¯',
     isActive: true,
     order: 2,
     productsCount: 8,
@@ -26,7 +26,7 @@ export const categories: Category[] = [
     nameAr: 'المكسرات',
     slug: 'nuts',
     description: 'مكسرات محمصة طازجة',
-    icon: '🥜',
+    icon: 'ðŸ¥œ',
     isActive: true,
     order: 3,
     productsCount: 15,
@@ -36,7 +36,7 @@ export const categories: Category[] = [
     nameAr: 'الياميش',
     slug: 'yamish',
     description: 'ياميش رمضان المميز',
-    icon: '🎁',
+    icon: 'ðŸŽ',
     isActive: true,
     order: 4,
     productsCount: 10,
@@ -46,7 +46,7 @@ export const categories: Category[] = [
     nameAr: 'المشروبات',
     slug: 'drinks',
     description: 'مشروبات رمضان التقليدية',
-    icon: '🥤',
+    icon: 'ðŸ¥¤',
     isActive: true,
     order: 5,
     productsCount: 6,
@@ -56,7 +56,7 @@ export const categories: Category[] = [
     nameAr: 'الحلويات',
     slug: 'sweets',
     description: 'حلويات شرقية أصيلة',
-    icon: '🍮',
+    icon: 'ðŸ®',
     isActive: true,
     order: 6,
     productsCount: 9,
@@ -75,7 +75,7 @@ export const products: Product[] = [
     basePrice: 250,
     originalPrice: 300,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٥٠٠ جرام', price: 130 },
       { id: 's2', label: '١ كيلو', price: 250 },
       { id: 's3', label: '٢ كيلو', price: 480 },
@@ -96,7 +96,7 @@ export const products: Product[] = [
     fullDescription: 'عسل سدر يمني أصلي من جبال حضرموت. غني بالفوائد الصحية ومذاق فريد.',
     basePrice: 450,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٢٥٠ جرام', price: 120 },
       { id: 's2', label: '٥٠٠ جرام', price: 230 },
       { id: 's3', label: '١ كيلو', price: 450 },
@@ -117,7 +117,7 @@ export const products: Product[] = [
     basePrice: 350,
     originalPrice: 400,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٢٥٠ جرام', price: 95 },
       { id: 's2', label: '٥٠٠ جرام', price: 180 },
       { id: 's3', label: '١ كيلو', price: 350 },
@@ -138,7 +138,7 @@ export const products: Product[] = [
     fullDescription: 'قمر الدين سوري أصلي مصنوع من المشمش الطبيعي. مثالي لشهر رمضان المبارك.',
     basePrice: 80,
     unit: 'قطعة',
-    sizes: [
+    variants: [
       { id: 's1', label: 'قطعة واحدة', price: 80 },
       { id: 's2', label: '٣ قطع', price: 220 },
       { id: 's3', label: '٦ قطع', price: 420 },
@@ -158,7 +158,7 @@ export const products: Product[] = [
     fullDescription: 'تمر عجوة المدينة المنورة الأصلي. من أفضل أنواع التمور وأكثرها فائدة.',
     basePrice: 320,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٥٠٠ جرام', price: 170 },
       { id: 's2', label: '١ كيلو', price: 320 },
     ],
@@ -177,7 +177,7 @@ export const products: Product[] = [
     fullDescription: 'كنافة نابلسية أصلية محضرة بالجبن النابلسي والقطر الطبيعي.',
     basePrice: 180,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٥٠٠ جرام', price: 95 },
       { id: 's2', label: '١ كيلو', price: 180 },
       { id: 's3', label: '٢ كيلو', price: 340 },
@@ -197,7 +197,7 @@ export const products: Product[] = [
     fullDescription: 'فستق حلبي أصلي من أجود المزارع السورية. محمص طازجاً.',
     basePrice: 550,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٢٥٠ جرام', price: 145 },
       { id: 's2', label: '٥٠٠ جرام', price: 280 },
       { id: 's3', label: '١ كيلو', price: 550 },
@@ -218,7 +218,7 @@ export const products: Product[] = [
     basePrice: 200,
     originalPrice: 250,
     unit: 'كيلو',
-    sizes: [
+    variants: [
       { id: 's1', label: '٥٠٠ جرام', price: 110 },
       { id: 's2', label: '١ كيلو', price: 200 },
       { id: 's3', label: '٢ كيلو', price: 380 },
