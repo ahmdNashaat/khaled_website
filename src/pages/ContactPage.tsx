@@ -15,22 +15,22 @@ const ContactPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    const message = `
-*رسالة جديدة من موقع مذاق*
 
-*الاسم:* ${formData.name}
-*الهاتف:* ${formData.phone}
-*الموضوع:* ${formData.subject}
+    const messageContent = formData.message.trim() || 'N/A';
+    const messageLines = [
+      'New Message from Mazaaq Website',
+      `Customer Name: ${formData.name || 'N/A'}`,
+      `Phone Number: ${formData.phone || 'N/A'}`,
+      `Subject: ${formData.subject || 'N/A'}`,
+      '',
+      'Message:',
+      messageContent,
+    ];
 
-*الرسالة:*
-${formData.message}
-    `.trim();
-
-    const encoded = encodeURIComponent(message);
+    const encoded = encodeURIComponent(messageLines.join('\\n'));
     window.open(`https://wa.me/${storeSettings.whatsappNumber}?text=${encoded}`, '_blank');
-    
-    toast.success('جاري فتح واتساب لإرسال رسالتك');
+
+    toast.success('جارٍ فتح واتساب لإرسال رسالتك.');
     setFormData({ name: '', phone: '', subject: '', message: '' });
   };
 

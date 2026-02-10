@@ -197,57 +197,73 @@ const CartPage = () => {
   const whatsappNumber = '201276166532';
 
   const formatOrderMessage = (orderNumber?: string) => {
-    const productLines = items
-      .map((item) => {
-        const price = item.selectedVariant?.price || item.product.basePrice;
-        const lineTotal = price * item.quantity;
-        return `- ${item.product.nameAr} - ${item.selectedVariant?.label || item.product.unit} × ${item.quantity} = ${lineTotal} جنيه`;
-      })
-      .join('\n');
+    const formatCurrency = (value: number) => `${value.toFixed(2)} جنيه`;
+    const orderDateTime = new Date().toLocaleString('en-US', {
+      dateStyle: 'long',
+      timeStyle: 'short',
+    });
+    const orderNumberLabel = orderNumber ? formatOrderNumber(orderNumber) : 'Pending';
 
-    let freeItemsText = '';
-    cartCalculation.appliedOffers.forEach(applied => {
+    const productLines = items.map((item, index) => {
+      const price = item.selectedVariant?.price || item.product.basePrice;
+      const lineTotal = price * item.quantity;
+      const variantLabel = item.selectedVariant?.label || item.product.unit;
+      return `${index + 1}. ${item.product.nameAr} (${variantLabel}) - Qty: ${item.quantity}, Unit Price: ${formatCurrency(
+        price
+      )}, Line Total: ${formatCurrency(lineTotal)}`;
+    });
+
+    const freeItemLines: string[] = [];
+    cartCalculation.appliedOffers.forEach((applied) => {
       if (applied.freeItems && applied.freeItems.length > 0) {
-        applied.freeItems.forEach(freeItem => {
-          freeItemsText += `\nðŸŽ ${freeItem.product.nameAr} × ${freeItem.quantity} (مجاناً!)`;
+        applied.freeItems.forEach((freeItem) => {
+          freeItemLines.push(`Free Item: ${freeItem.product.nameAr} - Qty: ${freeItem.quantity}`);
         });
       }
     });
 
-    const offersText = cartCalculation.appliedOffers.length > 0
-      ? '\n\n*ðŸŽ‰ العروض المطبقة:*\n' + cartCalculation.appliedOffers.map(a => `- ${a.message}`).join('\n')
-      : '';
+    const areaLabel = deliveryArea
+      ? `${deliveryArea.city} - ${deliveryArea.area}`
+      : addressForm.city && addressForm.area
+      ? `${addressForm.city} - ${addressForm.area}`
+      : 'Not provided';
 
-    const message = `
-ðŸ›’ *طلب جديد من متجر مذاق*
-${orderNumber ? `\n*ðŸ”– رقم الطلب:* ${formatOrderNumber(orderNumber)}` : ''}
+    const addressDetailParts = [
+      addressForm.street ? `Street: ${addressForm.street}` : null,
+      addressForm.building ? `Building ${addressForm.building}` : null,
+      addressForm.floor ? `Floor ${addressForm.floor}` : null,
+      addressForm.apartment ? `Apartment ${addressForm.apartment}` : null,
+    ].filter((part): part is string => Boolean(part));
 
-*ðŸ“¦ المنتجات:*
-${productLines}${freeItemsText}
+    const deliveryAddressText = addressDetailParts.length > 0
+      ? `${areaLabel} | ${addressDetailParts.join(', ')}`
+      : areaLabel;
 
-*ðŸ“ منطقة التوصيل:* ${deliveryArea ? `${deliveryArea.city} - ${deliveryArea.area}` : 'غير محدد'}
-*ðŸšš رسوم التوصيل:* ${cartCalculation.deliveryFee} جنيه${cartCalculation.deliveryFee === 0 && originalDeliveryFee > 0 ? ' (مجاني ðŸŽ‰)' : ''}
+    const trimmedNotes = notes.trim();
+    const messageLines = [
+      'New Order from Mazaaq Website',
+      `Order Number: ${orderNumberLabel}`,
+      `Order Date & Time: ${orderDateTime}`,
+      '',
+      'Customer Details',
+      `Name: ${customerName || 'N/A'}`,
+      `Phone: ${customerPhone || 'N/A'}`,
+      `Delivery Area / Address: ${deliveryAddressText}`,
+      '',
+      'Products:',
+      ...productLines,
+      ...freeItemLines,
+      '',
+      `Delivery Fee: ${formatCurrency(cartCalculation.deliveryFee)}`,
+      `Subtotal: ${formatCurrency(cartCalculation.subtotal)}`,
+      cartCalculation.totalDiscount > 0 ? `Total Discount: ${formatCurrency(cartCalculation.totalDiscount)}` : null,
+      `Final Total: ${formatCurrency(cartCalculation.total)}`,
+      'Payment Method: Cash on Delivery',
+      '',
+      `Customer Notes: ${trimmedNotes || 'None'}`,
+    ].filter((line): line is string => typeof line === 'string');
 
-*ðŸ’° المجموع الفرعي:* ${cartCalculation.subtotal.toFixed(2)} جنيه
-${cartCalculation.totalDiscount > 0 ? `*ðŸ’š إجمالي الخصم:* ${cartCalculation.totalDiscount.toFixed(2)} جنيه` : ''}
-*ðŸ’µ الإجمالي النهائي:* ${cartCalculation.total.toFixed(2)} جنيه
-${cartCalculation.savings > 0 ? `\n✨ *وفرت:* ${cartCalculation.savings.toFixed(2)} جنيه` : ''}
-
-*ðŸ’³ طريقة الدفع:* الدفع عند الاستلام
-${offersText}
-
-${notes ? `\n*ðŸ“ ملاحظات:* ${notes}` : ''}
-
-━━━━━━━━━━━━━━━━━━━━
-_تاريخ الطلب: ${new Date().toLocaleDateString('ar-EG', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit'
-})}_
-    `.trim();
-
+    const message = messageLines.join('\n');
     return encodeURIComponent(message);
   };
 
