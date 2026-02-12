@@ -198,26 +198,26 @@ const CartPage = () => {
 
   const formatOrderMessage = (orderNumber?: string) => {
     const formatCurrency = (value: number) => `${value.toFixed(2)} جنيه`;
-    const orderDateTime = new Date().toLocaleString('en-US', {
+    const orderDateTime = new Date().toLocaleString('ar-EG', {
       dateStyle: 'long',
       timeStyle: 'short',
     });
-    const orderNumberLabel = orderNumber ? formatOrderNumber(orderNumber) : 'Pending';
+    const orderNumberLabel = orderNumber ? formatOrderNumber(orderNumber) : 'غير متاح';
 
     const productLines = items.map((item, index) => {
       const price = item.selectedVariant?.price || item.product.basePrice;
       const lineTotal = price * item.quantity;
       const variantLabel = item.selectedVariant?.label || item.product.unit;
-      return `${index + 1}. ${item.product.nameAr} (${variantLabel}) - Qty: ${item.quantity}, Unit Price: ${formatCurrency(
+      return `${index + 1}. ${item.product.nameAr} (${variantLabel}) - الكمية: ${item.quantity}، سعر الوحدة: ${formatCurrency(
         price
-      )}, Line Total: ${formatCurrency(lineTotal)}`;
+      )}، إجمالي الصنف: ${formatCurrency(lineTotal)}`;
     });
 
     const freeItemLines: string[] = [];
     cartCalculation.appliedOffers.forEach((applied) => {
       if (applied.freeItems && applied.freeItems.length > 0) {
         applied.freeItems.forEach((freeItem) => {
-          freeItemLines.push(`Free Item: ${freeItem.product.nameAr} - Qty: ${freeItem.quantity}`);
+          freeItemLines.push(`منتج مجاني: ${freeItem.product.nameAr} - الكمية: ${freeItem.quantity}`);
         });
       }
     });
@@ -226,41 +226,41 @@ const CartPage = () => {
       ? `${deliveryArea.city} - ${deliveryArea.area}`
       : addressForm.city && addressForm.area
       ? `${addressForm.city} - ${addressForm.area}`
-      : 'Not provided';
+      : 'غير متاح';
 
     const addressDetailParts = [
-      addressForm.street ? `Street: ${addressForm.street}` : null,
-      addressForm.building ? `Building ${addressForm.building}` : null,
-      addressForm.floor ? `Floor ${addressForm.floor}` : null,
-      addressForm.apartment ? `Apartment ${addressForm.apartment}` : null,
+      addressForm.street ? `الشارع: ${addressForm.street}` : null,
+      addressForm.building ? `عمارة ${addressForm.building}` : null,
+      addressForm.floor ? `الدور ${addressForm.floor}` : null,
+      addressForm.apartment ? `شقة ${addressForm.apartment}` : null,
     ].filter((part): part is string => Boolean(part));
 
     const deliveryAddressText = addressDetailParts.length > 0
-      ? `${areaLabel} | ${addressDetailParts.join(', ')}`
+      ? `${areaLabel} | ${addressDetailParts.join('، ')}`
       : areaLabel;
 
     const trimmedNotes = notes.trim();
     const messageLines = [
-      'New Order from Mazaaq Website',
-      `Order Number: ${orderNumberLabel}`,
-      `Order Date & Time: ${orderDateTime}`,
+      'طلب جديد من موقع مذاق',
+      `رقم الطلب: ${orderNumberLabel}`,
+      `تاريخ ووقت الطلب: ${orderDateTime}`,
       '',
-      'Customer Details',
-      `Name: ${customerName || 'N/A'}`,
-      `Phone: ${customerPhone || 'N/A'}`,
-      `Delivery Area / Address: ${deliveryAddressText}`,
+      'بيانات العميل:',
+      `الاسم الكامل: ${customerName || 'غير متاح'}`,
+      `رقم الهاتف: ${customerPhone || 'غير متاح'}`,
+      `منطقة / عنوان التوصيل: ${deliveryAddressText}`,
       '',
-      'Products:',
+      'المنتجات:',
       ...productLines,
       ...freeItemLines,
       '',
-      `Delivery Fee: ${formatCurrency(cartCalculation.deliveryFee)}`,
-      `Subtotal: ${formatCurrency(cartCalculation.subtotal)}`,
-      cartCalculation.totalDiscount > 0 ? `Total Discount: ${formatCurrency(cartCalculation.totalDiscount)}` : null,
-      `Final Total: ${formatCurrency(cartCalculation.total)}`,
-      'Payment Method: Cash on Delivery',
+      `رسوم التوصيل: ${formatCurrency(cartCalculation.deliveryFee)}`,
+      `المجموع الفرعي: ${formatCurrency(cartCalculation.subtotal)}`,
+      cartCalculation.totalDiscount > 0 ? `إجمالي الخصم: ${formatCurrency(cartCalculation.totalDiscount)}` : null,
+      `الإجمالي النهائي: ${formatCurrency(cartCalculation.total)}`,
+      'طريقة الدفع: الدفع عند الاستلام',
       '',
-      `Customer Notes: ${trimmedNotes || 'None'}`,
+      `ملاحظات العميل: ${trimmedNotes || 'لا توجد'}`,
     ].filter((line): line is string => typeof line === 'string');
 
     const message = messageLines.join('\n');
